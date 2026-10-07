@@ -216,7 +216,12 @@ export function VotingView() {
                       option.class,
                       option.description,
                     ]
-                      .filter(Boolean) as unknown as string[])
+                      .filter(Boolean) ([
+                        option.department ?? "",
+                        option.semester ?? "",
+                        option.class ?? "",
+                        option.description ?? "",
+                      ]).filter(Boolean)
                       .join(" · ");
                     return (
                       <label
