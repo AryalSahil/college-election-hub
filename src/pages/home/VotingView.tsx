@@ -210,12 +210,13 @@ export function VotingView() {
                 >
                   {post.options.map((option) => {
                     const selected = selections[post.id] === option.id;
-                    const meta = [
+                    const meta = ([
                       option.department,
                       option.semester,
                       option.class,
+                      option.description,
                     ]
-                      .filter(Boolean)
+                      .filter(Boolean) as unknown as string[])
                       .join(" · ");
                     return (
                       <label

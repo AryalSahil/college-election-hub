@@ -71,9 +71,10 @@ export function DangerZonePanel() {
   }
 
   const phraseValid =
-    (dialog?.op === "votes" &&
+    !dialog ||
+    (dialog.op === "votes" &&
       phrase.trim().toUpperCase() === PHRASES.votes) ||
-    (dialog?.op === "fresh" && phrase.trim().toUpperCase() === PHRASES.fresh);
+    (dialog.op === "fresh" && phrase.trim().toUpperCase() === PHRASES.fresh);
 
   return (
     <section
@@ -173,10 +174,7 @@ export function DangerZonePanel() {
       {/* Step 1 — “Are you sure?” (first confirmation)                    */}
       {/* ---------------------------------------------------------------- */}
       <Dialog
-        open={
-          dialog !== null &&
-          (dialog.stage === "confirm" || dialog.op === "voter")
-        }
+        open={!!dialog && (dialog.stage === "confirm" || dialog.op === "voter")}
         onOpenChange={(open) => !open && close()}
       >
         <DialogContent className="sm:max-w-md">
@@ -253,11 +251,7 @@ export function DangerZonePanel() {
       {/* Step 2 — typed confirmation phrase (second confirmation)         */}
       {/* ---------------------------------------------------------------- */}
       <Dialog
-        open={
-          dialog !== null &&
-          (dialog.op === "votes" || dialog.op === "fresh") &&
-          dialog.stage === "phrase"
-        }
+        open={!!dialog && dialog.op === "votes" && dialog.stage === "phrase"}
         onOpenChange={(open) => !open && close()}
       >
         <DialogContent className="sm:max-w-md">
@@ -286,7 +280,9 @@ export function DangerZonePanel() {
             <Input
               value={phrase}
               onChange={(event) => setPhrase(event.target.value)}
-              placeholder={dialog?.op === "votes" ? PHRASES.votes : PHRASES.fresh}
+              placeholder={
+                dialog?.op === "votes" ? PHRASES.votes : PHRASES.fresh
+              }
               autoComplete="off"
               spellCheck={false}
               autoFocus

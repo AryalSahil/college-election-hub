@@ -5,9 +5,7 @@ import { Seal } from "@/components/Seal";
 import { CenteredLoader } from "@/components/Loader";
 import { useFullscreen } from "@/hooks/use-fullscreen";
 
-type DisplayData = NonNullable<
-  Awaited<ReturnType<typeof api.display.data._query>>
->;
+export type { DisplayData } from "@/convex/display";
 
 function initialsOf(name: string): string {
   return name
@@ -71,7 +69,8 @@ export default function Display() {
   const { active: fullscreen, toggle } = useFullscreen();
 
   if (data === undefined) return <CenteredLoader label="Loading display" />;
-  const branding = data.branding;
+  if (data === null) return null;
+  const branding = data.branding ?? ({} as DisplayData["branding"]);
   const status = statusOf(data);
   const results = data.results;
   const showResults = Boolean(results && data.resultsVisibility);
