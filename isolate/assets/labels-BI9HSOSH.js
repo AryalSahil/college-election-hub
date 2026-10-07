@@ -1,0 +1,1 @@
+const t={voting:"Voting",results:"Results",notifications:"Notifications",none:"No Page",maintenance:"Maintenance"},e={not_started:"Not Started",open:"Open",paused:"Paused",closed:"Closed"},n={draft:"Draft",active:"Active",completed:"Completed"};export{n as E,t as P,e as V};

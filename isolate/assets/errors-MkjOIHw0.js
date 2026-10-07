@@ -1,0 +1,2 @@
+function i(r,n="Something went wrong. Please try again."){const s=r instanceof Error?r.message:typeof r=="string"?r:"";if(!s.trim())return n;const a=[/Caused by:\s*(?:[A-Za-z]*Error:\s*)?([^\n]+)/,/Uncaught (?:[A-Za-z]*Error|TypeError):\s*([^\n]+)/,/\[Request ID:[^\]]*\]\s*(?:Server Error|Uncaught Error:)\s*([^\n]*)/];for(const t of a){const e=s.match(t);if(e?.[1]?.trim())return e[1].trim()}return s.split(`
+`).map(t=>t.trim()).find(t=>t&&!t.startsWith("at ")&&!t.includes("Request ID")&&!/^https?:\/\//.test(t))||n}export{i as e};
