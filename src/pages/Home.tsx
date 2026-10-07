@@ -18,8 +18,16 @@ import { NotificationsView } from "./home/NotificationsView";
 export default function Home() {
   const state = useQuery(api.settings.publicState);
 
+  const branding = state?.branding;
+
   return (
-    <PublicShell eyebrow="Student Election">
+    <PublicShell
+      subtitle={
+        branding
+          ? `${branding.electionTitle} ${branding.year}`
+          : "Election Portal"
+      }
+    >
       {state === undefined ? (
         <CenteredLoader label="Loading election" />
       ) : state.page === "maintenance" ? (

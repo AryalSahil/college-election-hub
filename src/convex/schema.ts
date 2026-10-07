@@ -78,6 +78,13 @@ const schema = defineSchema(
       resultsVisibility: v.boolean(),
       votingStatus: votingStatusValidator,
       updatedAt: v.number(),
+      // College branding (admin-configurable).
+      collegeName: v.optional(v.string()),
+      logoStorageId: v.optional(v.id("_storage")),
+      // Optional one-time voter-code system (off by default).
+      voterCodesEnabled: v.optional(v.boolean()),
+      // Voting status applied by "Start Fresh Election".
+      resetVotingStatus: v.optional(votingStatusValidator),
     }).index("by_key", ["key"]),
 
     // The single election for this deployment.
@@ -104,6 +111,7 @@ const schema = defineSchema(
       postId: v.id("posts"),
       name: v.string(),
       photoUrl: v.optional(v.string()),
+      photoStorageId: v.optional(v.id("_storage")),
       department: v.optional(v.string()),
       semester: v.optional(v.string()),
       class: v.optional(v.string()),
@@ -161,6 +169,17 @@ const schema = defineSchema(
       detail: v.string(),
       createdAt: v.number(),
     }),
+
+    // Optional one-time voter codes (enabled from Admin → Voting).
+    voterCodes: defineTable({
+      electionId: v.id("elections"),
+      code: v.string(),
+      used: v.boolean(),
+      usedAt: v.optional(v.number()),
+      ballotId: v.optional(v.string()),
+    })
+      .index("by_code", ["code"])
+      .index("by_election", ["electionId"]),
   },
   {
     schemaValidation: false,

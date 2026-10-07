@@ -6,10 +6,14 @@ import type { QueryCtx } from "./helpers";
 import {
   NOTA_LABEL,
   computePublicPage,
+  ensureElection,
   getActiveElection,
   getSettings,
   isNotaName,
   randomHex,
+  recordActivity,
+  requireAdmin,
+  resolveCandidatePhoto,
   resolveSettings,
   verifySession,
 } from "./helpers";
@@ -44,7 +48,7 @@ export type ElectionResults = {
   posts: PostResult[];
 };
 
-async function computeResults(
+export async function computeResults(
   ctx: QueryCtx,
   election: Doc<"elections">,
 ): Promise<ElectionResults> {
@@ -63,7 +67,8 @@ async function computeResults(
   posts.sort((a, b) => a.displayOrder - b.displayOrder);
   const ballots = new Set(votes.map((vote) => vote.ballotId));
 
-  const postResults: PostResult[] = posts.map((post) => {
+  const postResults: PostResult[] = await Promise.all(
+    posts.map(async (post) => {
     const postVotes = votes.filter((vote) => vote.postId === post._id);
     const totalVotes = postVotes.length;
 
@@ -83,16 +88,18 @@ async function computeResults(
     const postCandidates = candidates.filter(
       (candidate) => candidate.postId === post._id,
     );
-    const raw: OptionResult[] = postCandidates.map((candidate) => ({
-      id: candidate._id,
-      name: candidate.name,
-      photoUrl: candidate.photoUrl,
-      symbol: candidate.symbol,
-      votes: countByCandidate.get(candidate._id) ?? 0,
-      percent: 0,
-      isNota: false,
-      isWinner: false,
-    }));
+    const raw: OptionResult[] = await Promise.all(
+      postCandidates.map(async (candidate) => ({
+        id: candidate._id,
+        name: candidate.name,
+        photoUrl: await resolveCandidatePhoto(ctx, candidate),
+        symbol: candidate.symbol,
+        votes: countByCandidate.get(candidate._id) ?? 0,
+        percent: 0,
+        isNota: false,
+        isWinner: false,
+      })),
+    );
     raw.push({
       id: NOTA,
       name: NOTA_LABEL,
@@ -120,7 +127,8 @@ async function computeResults(
       totalVotes,
       options: raw,
     };
-  });
+    }),
+  );
 
   return { totalBallots: ballots.size, posts: postResults };
 }
@@ -160,25 +168,25 @@ export const publicBallot = query({
       byPost.set(candidate.postId, list);
     }
 
-    return {
-      election: { name: election.name, year: election.year },
-      votingStatus: settings.votingStatus,
-      posts: activePosts.map((post) => ({
+    const ballotPosts = await Promise.all(
+      activePosts.map(async (post) => ({
         id: post._id,
         name: post.name,
         description: post.description,
         options: [
-          ...(byPost.get(post._id) ?? []).map((candidate) => ({
-            id: candidate._id,
-            name: candidate.name,
-            photoUrl: candidate.photoUrl,
-            department: candidate.department,
-            semester: candidate.semester,
-            class: candidate.class,
-            symbol: candidate.symbol,
-            description: candidate.description,
-            isNota: false as const,
-          })),
+          ...(await Promise.all(
+            (byPost.get(post._id) ?? []).map(async (candidate) => ({
+              id: candidate._id,
+              name: candidate.name,
+              photoUrl: await resolveCandidatePhoto(ctx, candidate),
+              department: candidate.department,
+              semester: candidate.semester,
+              class: candidate.class,
+              symbol: candidate.symbol,
+              description: candidate.description,
+              isNota: false as const,
+            })),
+          )),
           // NOTA is always appended server-side, always last.
           {
             id: NOTA,
@@ -187,6 +195,13 @@ export const publicBallot = query({
           },
         ],
       })),
+    );
+
+    return {
+      election: { name: election.name, year: election.year },
+      votingStatus: settings.votingStatus,
+      voterCodesEnabled: settings.voterCodesEnabled,
+      posts: ballotPosts,
     };
   },
 });
@@ -204,8 +219,9 @@ export const castVote = mutation({
         choice: v.union(v.id("candidates"), v.literal(NOTA)),
       }),
     ),
+    voterCode: v.optional(v.string()),
   },
-  handler: async (ctx, { selections }) => {
+  handler: async (ctx, { selections, voterCode }) => {
     // --- Gate 1: is voting actually open to students? ---
     const settings = resolveSettings(await getSettings(ctx));
     if (settings.maintenanceMode) {
@@ -232,7 +248,26 @@ export const castVote = mutation({
       throw new Error("There are no active posts to vote for.");
     }
 
-    // --- Gate 3: exactly one valid choice for every active post ---
+    // --- Gate 3: optional one-time voter code ---
+    let voterCodeRecord: Doc<"voterCodes"> | null = null;
+    const normalizedCode = (voterCode ?? "").trim().toUpperCase();
+    if (settings.voterCodesEnabled) {
+      if (!normalizedCode) {
+        throw new Error("Enter your voter code to continue.");
+      }
+      voterCodeRecord = await ctx.db
+        .query("voterCodes")
+        .withIndex("by_code", (q) => q.eq("code", normalizedCode))
+        .unique();
+      if (!voterCodeRecord || voterCodeRecord.electionId !== election._id) {
+        throw new Error("This voter code is not valid.");
+      }
+      if (voterCodeRecord.used) {
+        throw new Error("This voter code has already been used.");
+      }
+    }
+
+    // --- Gate 4: exactly one valid choice for every active post ---
     const activeIds = new Set(activePosts.map((post) => post._id));
     const seen = new Set<string>();
     for (const selection of selections) {
@@ -269,14 +304,22 @@ export const castVote = mutation({
 
     // --- Write the whole ballot atomically ---
     const ballotId = randomHex(16);
+    if (voterCodeRecord) {
+      // Consume the one-time code in the same transaction as the ballot, so
+      // a code can never be spent twice.
+      await ctx.db.patch(voterCodeRecord._id, {
+        used: true,
+        usedAt: Date.now(),
+        ballotId,
+      });
+    }
     for (const selection of selections) {
       await ctx.db.insert("votes", {
         electionId: election._id,
         postId: selection.postId,
         candidateId: selection.choice,
         ballotId,
-        // Reserved for the future one-time voter-code system; unused in v1.
-        voterToken: undefined,
+        voterToken: voterCodeRecord ? normalizedCode : undefined,
       });
     }
     return { ok: true as const };
@@ -325,6 +368,104 @@ export const adminResults = query({
     return {
       published: settings.resultsVisibility,
       results: await computeResults(ctx, election),
+    };
+  },
+});
+
+/**
+ * Public: early feedback for a voter code before the ballot is shown. The
+ * code is only consumed when the ballot is actually submitted.
+ */
+export const checkVoterCode = query({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    const settings = resolveSettings(await getSettings(ctx));
+    if (!settings.voterCodesEnabled) return { status: "disabled" as const };
+    const normalized = code.trim().toUpperCase();
+    if (!normalized) return { status: "unknown" as const };
+    const record = await ctx.db
+      .query("voterCodes")
+      .withIndex("by_code", (q) => q.eq("code", normalized))
+      .unique();
+    if (!record) return { status: "unknown" as const };
+    if (record.used) return { status: "used" as const };
+    return { status: "ok" as const };
+  },
+});
+
+function randomVoterCode(): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  let raw = "";
+  for (const byte of bytes) raw += alphabet[byte % alphabet.length];
+  return `${raw.slice(0, 4)}-${raw.slice(4)}`;
+}
+
+/** Admin: generate one-time voter codes for this election. */
+export const generateVoterCodes = mutation({
+  args: { token: v.string(), count: v.number() },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.token);
+    const count = Math.floor(args.count);
+    if (!Number.isFinite(count) || count < 1 || count > 2000) {
+      throw new Error("Choose between 1 and 2000 codes.");
+    }
+    const election = await ensureElection(ctx);
+
+    const codes: string[] = [];
+    for (let i = 0; i < count; i++) {
+      let code = randomVoterCode();
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const existing = await ctx.db
+          .query("voterCodes")
+          .withIndex("by_code", (q) => q.eq("code", code))
+          .unique();
+        if (!existing) break;
+        code = randomVoterCode();
+      }
+      await ctx.db.insert("voterCodes", {
+        electionId: election._id,
+        code,
+        used: false,
+      });
+      codes.push(code);
+    }
+    await recordActivity(
+      ctx,
+      "voter_codes.generate",
+      `Generated ${count} voter code(s) · Admin · Election: ${election.name}`,
+    );
+    return { ok: true as const, count, codes };
+  },
+});
+
+/** Admin: voter-code usage stats (Unused / Used). */
+export const voterCodeStats = query({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const admin = await verifySession(ctx, token);
+    if (!admin) return null;
+    const settings = resolveSettings(await getSettings(ctx));
+    const election = await getActiveElection(ctx);
+    if (!election) {
+      return {
+        enabled: settings.voterCodesEnabled,
+        total: 0,
+        unused: 0,
+        used: 0,
+      };
+    }
+    const codes = await ctx.db
+      .query("voterCodes")
+      .withIndex("by_election", (q) => q.eq("electionId", election._id))
+      .collect();
+    const used = codes.filter((entry) => entry.used).length;
+    return {
+      enabled: settings.voterCodesEnabled,
+      total: codes.length,
+      unused: codes.length - used,
+      used,
     };
   },
 });

@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Check, TriangleAlert } from "lucide-react";
+import { Check, Ban, TriangleAlert } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { FadeIn } from "@/components/FadeIn";
 import { CenteredLoader } from "@/components/Loader";
@@ -206,19 +206,26 @@ export function VotingView() {
                 <div
                   role="radiogroup"
                   aria-label={post.name}
-                  className="mt-3"
+                  className="mt-4 grid gap-3 sm:grid-cols-2"
                 >
                   {post.options.map((option) => {
                     const selected = selections[post.id] === option.id;
+                    const meta = [
+                      option.department,
+                      option.semester,
+                      option.class,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ");
                     return (
                       <label
                         key={option.id}
                         className={[
-                          "group flex cursor-pointer items-center gap-4 border-b border-border/70 px-3 py-4 transition-colors sm:px-4",
-                          "hover:bg-muted/60",
-                          "has-[:checked]:border-primary/30 has-[:checked]:bg-primary/[0.05]",
+                          "group flex cursor-pointer flex-col overflow-hidden rounded-xl border-2 bg-card p-3 transition-all sm:p-4",
+                          "hover:border-primary/40 hover:shadow-sm",
+                          "has-[:checked]:border-primary has-[:checked]:bg-primary/[0.04] has-[:checked]:shadow-sm",
                           "has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-ring/60",
-                          option.isNota ? "mt-3 rounded-md border-t" : "",
+                          option.isNota ? "sm:col-span-2" : "",
                           !isOpen ? "cursor-not-allowed opacity-60" : "",
                         ].join(" ")}
                       >
@@ -229,70 +236,108 @@ export function VotingView() {
                           checked={selected}
                           disabled={!isOpen}
                           onChange={() => select(post.id, option.id)}
-                          className="size-4 shrink-0 accent-primary"
+                          className="sr-only"
                         />
-                        {!option.isNota && (
+
+                        {/* Photo (NOTA gets an illustration instead) */}
+                        <div
+                          className={[
+                            "relative w-full overflow-hidden rounded-lg border border-border bg-muted",
+                            option.isNota
+                              ? "flex aspect-[16/6] items-center justify-center"
+                              : "aspect-square sm:aspect-[4/3]",
+                          ].join(" ")}
+                        >
+                          {option.isNota ? (
+                            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                              <Ban className="size-9" strokeWidth={1.6} />
+                              <span className="text-[10px] uppercase tracking-[0.3em]">
+                                None of the Above
+                              </span>
+                            </div>
+                          ) : (
+                            <>
+                              {/* Placeholder underneath so a broken image falls back gracefully */}
+                              <div className="absolute inset-0 flex items-center justify-center text-2xl font-semibold uppercase tracking-wide text-muted-foreground sm:text-3xl">
+                                {initialsOf(option.name)}
+                              </div>
+                              {option.photoUrl && (
+                                <img
+                                  src={option.photoUrl}
+                                  alt={option.name}
+                                  className="absolute inset-0 size-full object-cover"
+                                  onError={(event) => {
+                                    event.currentTarget.style.display = "none";
+                                  }}
+                                />
+                              )}
+                              {selected && (
+                                <span className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
+                                  <Check className="size-4" strokeWidth={3} />
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </div>
+
+                        {/* Name + meta */}
+                        <div className="mt-3 flex flex-1 flex-col items-center text-center">
+                          <p className="text-base font-semibold leading-snug sm:text-lg">
+                            {option.name}
+                          </p>
+                          {option.isNota ? (
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              Vote against every candidate on this post.
+                            </p>
+                          ) : (
+                            <>
+                              {meta && (
+                                <p className="mt-1 text-sm leading-snug text-muted-foreground">
+                                  {meta}
+                                </p>
+                              )}
+                              {option.description && (
+                                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground/80">
+                                  {option.description}
+                                </p>
+                              )}
+                              {option.symbol && (
+                                <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                                  {option.symbol}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </div>
+
+                        {/* Select indicator */}
+                        <div
+                          className={[
+                            "mt-3 flex items-center justify-center gap-2.5 border-t border-border/70 pt-3 text-sm font-medium",
+                            selected
+                              ? "text-primary"
+                              : "text-muted-foreground",
+                          ].join(" ")}
+                        >
                           <span
+                            aria-hidden="true"
                             className={[
-                              "flex size-10 shrink-0 items-center justify-center rounded-md border text-[11px] font-semibold uppercase tracking-wide transition-colors",
+                              "flex size-5 items-center justify-center rounded-full border-2",
                               selected
-                                ? "border-primary/40 bg-primary/5 text-primary"
-                                : "border-border text-muted-foreground",
+                                ? "border-primary bg-primary"
+                                : "border-muted-foreground/50",
                             ].join(" ")}
                           >
-                            {option.photoUrl ? (
-                              <img
-                                src={option.photoUrl}
-                                alt=""
-                                className="size-full rounded-md object-cover"
-                                onError={(event) => {
-                                  const image = event.currentTarget;
-                                  image.style.display = "none";
-                                }}
-                              />
-                            ) : (
-                              initialsOf(option.name)
+                            {selected && (
+                              <span className="size-2 rounded-full bg-primary-foreground" />
                             )}
                           </span>
-                        )}
-
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[15px] font-medium leading-snug sm:text-base">
-                            {option.name}
-                          </span>
-                          {option.isNota ? (
-                            <span className="mt-0.5 block text-xs text-muted-foreground">
-                              NOTA is not a candidate.
-                            </span>
-                          ) : (
-                            (option.department ||
-                              option.semester ||
-                              option.class ||
-                              option.description) && (
-                              <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-                                {[
-                                  option.department,
-                                  option.semester && `${option.semester}`,
-                                  option.class,
-                                ]
-                                  .filter(Boolean)
-                                  .join(" · ")}
-                                {option.description &&
-                                  (option.department ||
-                                    option.semester ||
-                                    option.class) &&
-                                  " — "}
-                                {option.description}
-                              </span>
-                            )
-                          )}
-                        </span>
-
-                        {!option.isNota && option.symbol && (
-                          <span className="hidden shrink-0 rounded-full border border-border px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] text-muted-foreground sm:block">
-                            {option.symbol}
-                          </span>
-                        )}
+                          {selected
+                            ? "Selected"
+                            : option.isNota
+                              ? "Select NOTA"
+                              : "Select candidate"}
+                        </div>
                       </label>
                     );
                   })}
@@ -359,7 +404,7 @@ export function VotingView() {
           </p>
           <Button
             size="lg"
-            className="w-full sm:w-auto"
+            className="h-14 w-full text-base sm:w-auto sm:px-10"
             disabled={!isOpen || totalPosts === 0}
             onClick={handleSubmit}
           >

@@ -7,8 +7,11 @@ import {
   LayoutDashboard,
   ListOrdered,
   LogOut,
+  Maximize,
   Menu,
+  Minimize,
   Monitor,
+  MonitorUp,
   ScrollText,
   Settings as SettingsIcon,
   Users,
@@ -18,6 +21,7 @@ import { api } from "@/convex/_generated/api";
 import { Brand } from "@/components/Brand";
 import { NavLink } from "@/components/admin/NavLink";
 import { Button } from "@/components/ui/button";
+import { useFullscreen } from "@/hooks/use-fullscreen";
 import {
   Sheet,
   SheetContent,
@@ -112,6 +116,11 @@ export default function AdminLayout() {
   const logout = useMutation(api.adminAuth.logout);
   const navigate = useNavigate();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const { active: fullscreen, toggle: toggleFullscreen } = useFullscreen();
+
+  function openDisplay() {
+    window.open("/display", "_blank", "noopener");
+  }
 
   async function signOut() {
     try {
@@ -146,7 +155,29 @@ export default function AdminLayout() {
             </div>
           ))}
         </nav>
-        <div className="border-t border-border px-3 py-4">
+        <div className="space-y-2 border-t border-border px-3 py-4">
+          <Button
+            variant="outline"
+            className="w-full justify-start gap-2"
+            onClick={() => void toggleFullscreen()}
+            title="Toggle browser fullscreen"
+          >
+            {fullscreen ? (
+              <Minimize className="size-4" />
+            ) : (
+              <Maximize className="size-4" />
+            )}
+            {fullscreen ? "Exit fullscreen" : "Fullscreen"}
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full justify-start gap-2"
+            onClick={openDisplay}
+            title="Open the full-screen election display"
+          >
+            <MonitorUp className="size-4" />
+            Display Election
+          </Button>
           <Button
             variant="outline"
             className="w-full justify-start gap-2"
@@ -164,6 +195,28 @@ export default function AdminLayout() {
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-background px-4 md:hidden">
           <Brand subtitle="Admin Panel" markClassName="size-7" />
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+              title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+              onClick={() => void toggleFullscreen()}
+            >
+              {fullscreen ? (
+                <Minimize className="size-4" />
+              ) : (
+                <Maximize className="size-4" />
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Open display mode"
+              title="Display Election"
+              onClick={openDisplay}
+            >
+              <MonitorUp className="size-4" />
+            </Button>
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" aria-label="Open menu">

@@ -43,6 +43,9 @@ export const publicState = query({
   handler: async (ctx) => {
     const settings = resolveSettings(await getSettings(ctx));
     const election = await getActiveElection(ctx);
+    const logoUrl = settings.logoStorageId
+      ? await ctx.storage.getUrl(settings.logoStorageId)
+      : null;
     return {
       page: computePublicPage(settings),
       activePublicPage: settings.activePublicPage,
@@ -52,6 +55,12 @@ export const publicState = query({
       election: election
         ? { name: election.name, year: election.year, status: election.status }
         : null,
+      branding: {
+        collegeName: settings.collegeName,
+        logoUrl,
+        electionTitle: election?.name ?? "College Election",
+        year: election?.year ?? String(new Date().getFullYear()),
+      },
     };
   },
 });
@@ -64,9 +73,13 @@ export const get = query({
     if (!admin) return null;
     const settings = resolveSettings(await getSettings(ctx));
     const election = await getActiveElection(ctx);
+    const logoUrl = settings.logoStorageId
+      ? await ctx.storage.getUrl(settings.logoStorageId)
+      : null;
     return {
       settings,
       currentPage: computePublicPage(settings),
+      branding: { collegeName: settings.collegeName, logoUrl },
       election: election
         ? {
             id: election._id,
@@ -160,6 +173,104 @@ export const setMaintenance = mutation({
       ctx,
       "maintenance.toggle",
       `Maintenance mode turned ${enabled ? "ON" : "OFF"}`,
+    );
+    return { ok: true as const };
+  },
+});
+
+/**
+ * Admin: save college branding — name plus optional logo upload/replace/remove.
+ * The file is validated server-side and stored in Convex file storage.
+ */
+export const updateBranding = mutation({
+  args: {
+    token: v.string(),
+    collegeName: v.string(),
+    logoStorageId: v.optional(v.id("_storage")),
+    logoRemoved: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.token);
+    const collegeName = args.collegeName.trim();
+    if (!collegeName) throw new Error("College name is required.");
+    if (collegeName.length > 80) throw new Error("College name is too long.");
+
+    const settings = await getOrCreateSettings(ctx);
+    const previousId = settings.logoStorageId;
+    let logoNote = "no logo change";
+
+    if (args.logoStorageId && args.logoStorageId !== previousId) {
+      // The file was validated and stored by the images.upload action.
+      if (previousId) await ctx.storage.delete(previousId);
+      await ctx.db.patch(settings._id, {
+        collegeName,
+        logoStorageId: args.logoStorageId,
+        updatedAt: Date.now(),
+      });
+      logoNote = "logo uploaded";
+    } else if (args.logoRemoved) {
+      if (previousId) await ctx.storage.delete(previousId);
+      await ctx.db.patch(settings._id, {
+        collegeName,
+        logoStorageId: undefined,
+        updatedAt: Date.now(),
+      });
+      logoNote = "logo removed";
+    } else {
+      await ctx.db.patch(settings._id, {
+        collegeName,
+        updatedAt: Date.now(),
+      });
+    }
+
+    await recordActivity(
+      ctx,
+      "branding.update",
+      `College branding updated (${logoNote}) · Admin · ${collegeName}`,
+    );
+    return { ok: true as const };
+  },
+});
+
+/** Admin: enable/disable the optional one-time voter-code system. */
+export const setVoterCodesEnabled = mutation({
+  args: { token: v.string(), enabled: v.boolean() },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.token);
+    const settings = await getOrCreateSettings(ctx);
+    if ((settings.voterCodesEnabled ?? false) === args.enabled) {
+      return { ok: true as const };
+    }
+    await ctx.db.patch(settings._id, {
+      voterCodesEnabled: args.enabled,
+      updatedAt: Date.now(),
+    });
+    await recordActivity(
+      ctx,
+      "voter_codes.toggle",
+      `Voter codes ${args.enabled ? "enabled" : "disabled"} · Admin`,
+    );
+    return { ok: true as const };
+  },
+});
+
+/** Admin: voting status applied by Start Fresh Election. */
+export const setResetVotingStatus = mutation({
+  args: { token: v.string(), status: votingStatusValidator },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.token);
+    const settings = await getOrCreateSettings(ctx);
+    if (settings.resetVotingStatus === args.status) {
+      return { ok: true as const };
+    }
+    await ctx.db.patch(settings._id, {
+      resetVotingStatus: args.status,
+      updatedAt: Date.now(),
+    });
+    await recordActivity(
+      ctx,
+      "settings.reset_status",
+      `Start-fresh voting status set to ${VOTING_LABELS[args.status]} · Admin`,
     );
     return { ok: true as const };
   },

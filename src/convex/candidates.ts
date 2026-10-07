@@ -4,6 +4,7 @@ import {
   isNotaName,
   recordActivity,
   requireAdmin,
+  resolveCandidatePhoto,
   verifySession,
 } from "./helpers";
 
@@ -48,11 +49,17 @@ export const list = query({
     const posts = await ctx.db.query("posts").collect();
     const postNames = new Map(posts.map((post) => [post._id, post.name]));
 
-    const rows = candidates.map((candidate) => ({
-      ...candidate,
-      postName: postNames.get(candidate.postId) ?? "Unknown post",
-    }));
-    rows.sort((a, b) => a.postName.localeCompare(b.postName) || a.name.localeCompare(b.name));
+    const rows = await Promise.all(
+      candidates.map(async (candidate) => ({
+        ...candidate,
+        photoUrl: await resolveCandidatePhoto(ctx, candidate),
+        postName: postNames.get(candidate.postId) ?? "Unknown post",
+      })),
+    );
+    rows.sort(
+      (a, b) =>
+        a.postName.localeCompare(b.postName) || a.name.localeCompare(b.name),
+    );
     return { candidates: rows, postCount: posts.length };
   },
 });
@@ -69,6 +76,7 @@ export const create = mutation({
     class: v.optional(v.string()),
     symbol: v.optional(v.string()),
     description: v.optional(v.string()),
+    photoStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.token);
@@ -77,10 +85,15 @@ export const create = mutation({
     const post = await ctx.db.get(args.postId);
     if (!post) throw new Error("This post no longer exists.");
 
+    // The file was validated and stored by the images.upload action.
+    const photoStorageId = args.photoStorageId;
+    const photoUrl = photoStorageId ? undefined : clean(args.photoUrl);
+
     await ctx.db.insert("candidates", {
       postId: args.postId,
       name: args.name.trim(),
-      photoUrl: clean(args.photoUrl),
+      photoUrl,
+      photoStorageId,
       department: clean(args.department),
       semester: clean(args.semester),
       class: clean(args.class),
@@ -111,6 +124,8 @@ export const update = mutation({
     symbol: v.optional(v.string()),
     description: v.optional(v.string()),
     active: v.boolean(),
+    photoStorageId: v.optional(v.id("_storage")),
+    photoRemoved: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.token);
@@ -129,10 +144,33 @@ export const update = mutation({
       notes.push(args.active ? "activated" : "deactivated");
     }
 
+    let photoStorageId = candidate.photoStorageId;
+    let photoUrl =
+      args.photoUrl !== undefined ? clean(args.photoUrl) : candidate.photoUrl;
+    if (
+      args.photoStorageId &&
+      args.photoStorageId !== candidate.photoStorageId
+    ) {
+      if (candidate.photoStorageId) {
+        await ctx.storage.delete(candidate.photoStorageId);
+      }
+      photoStorageId = args.photoStorageId;
+      photoUrl = undefined;
+      notes.push("photo replaced");
+    } else if (args.photoRemoved) {
+      if (candidate.photoStorageId) {
+        await ctx.storage.delete(candidate.photoStorageId);
+      }
+      photoStorageId = undefined;
+      photoUrl = undefined;
+      notes.push("photo removed");
+    }
+
     await ctx.db.patch(candidate._id, {
       postId: args.postId,
       name: args.name.trim(),
-      photoUrl: clean(args.photoUrl),
+      photoUrl,
+      photoStorageId,
       department: clean(args.department),
       semester: clean(args.semester),
       class: clean(args.class),

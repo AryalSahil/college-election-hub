@@ -23,6 +23,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  ImageUploader,
+  type ImageDraft,
+} from "@/components/ImageUploader";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -79,6 +83,8 @@ export default function AdminCandidates() {
   const [active, setActive] = useState(true);
   const [filterPost, setFilterPost] = useState<string>("all");
   const [selectedPost, setSelectedPost] = useState<string>("");
+  const [photoDraft, setPhotoDraft] = useState<ImageDraft | null>(null);
+  const [photoRemoved, setPhotoRemoved] = useState(false);
 
   if (data === undefined || postData === undefined) {
     return <InlineLoader label="Loading candidates" />;
@@ -97,6 +103,8 @@ export default function AdminCandidates() {
       await action();
       toast.success(success);
       setDialog(null);
+      setPhotoDraft(null);
+      setPhotoRemoved(false);
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
@@ -117,12 +125,12 @@ export default function AdminCandidates() {
           token,
           postId: selectedPost as Id<"posts">,
           name: String(formData.get("name") ?? ""),
-          photoUrl: String(formData.get("photoUrl") ?? ""),
           department: String(formData.get("department") ?? ""),
           semester: String(formData.get("semester") ?? ""),
           class: String(formData.get("class") ?? ""),
           symbol: String(formData.get("symbol") ?? ""),
           description: String(formData.get("description") ?? ""),
+          ...(photoDraft ? { photoStorageId: photoDraft.storageId } : {}),
         }),
       "Candidate added.",
     );
@@ -143,13 +151,17 @@ export default function AdminCandidates() {
           candidateId: dialog.candidate._id,
           postId: selectedPost as Id<"posts">,
           name: String(formData.get("name") ?? ""),
-          photoUrl: String(formData.get("photoUrl") ?? ""),
           department: String(formData.get("department") ?? ""),
           semester: String(formData.get("semester") ?? ""),
           class: String(formData.get("class") ?? ""),
           symbol: String(formData.get("symbol") ?? ""),
           description: String(formData.get("description") ?? ""),
           active,
+          ...(photoDraft
+            ? { photoStorageId: photoDraft.storageId }
+            : photoRemoved
+              ? { photoRemoved: true }
+              : {}),
         }),
       "Candidate updated.",
     );
@@ -175,6 +187,8 @@ export default function AdminCandidates() {
           <Button
             onClick={() => {
               setSelectedPost(posts[0]?._id ?? "");
+              setPhotoDraft(null);
+              setPhotoRemoved(false);
               setDialog({ mode: "create" });
             }}
             disabled={posts.length === 0}
@@ -290,6 +304,8 @@ export default function AdminCandidates() {
                     onClick={() => {
                       setActive(candidate.active);
                       setSelectedPost(candidate.postId);
+                      setPhotoDraft(null);
+                      setPhotoRemoved(false);
                       setDialog({ mode: "edit", candidate });
                     }}
                   >
@@ -393,27 +409,27 @@ export default function AdminCandidates() {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="candidate-symbol">Symbol (optional)</Label>
-                <Input
-                  id="candidate-symbol"
-                  name="symbol"
-                  defaultValue={formDefaults?.symbol}
-                  placeholder="e.g. ★"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="candidate-photo">Photo URL (optional)</Label>
-                <Input
-                  id="candidate-photo"
-                  name="photoUrl"
-                  type="url"
-                  defaultValue={formDefaults?.photoUrl}
-                  placeholder="https://…"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="candidate-symbol">Symbol (optional)</Label>
+              <Input
+                id="candidate-symbol"
+                name="symbol"
+                defaultValue={formDefaults?.symbol}
+                placeholder="e.g. ★"
+              />
             </div>
+
+            <ImageUploader
+              kind="candidate"
+              label="Candidate photo (optional)"
+              existingUrl={
+                dialog?.mode === "edit" ? dialog.candidate.photoUrl : null
+              }
+              draft={photoDraft}
+              removed={photoRemoved}
+              onDraft={setPhotoDraft}
+              onRemoved={setPhotoRemoved}
+            />
 
             <div className="space-y-2">
               <Label htmlFor="candidate-description">

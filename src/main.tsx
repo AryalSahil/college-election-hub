@@ -11,6 +11,7 @@ import "./index.css";
 
 // Lazy load route components for better code splitting
 const Home = lazy(() => import("./pages/Home.tsx"));
+const Display = lazy(() => import("./pages/Display.tsx"));
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin.tsx"));
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout.tsx"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.tsx"));
@@ -135,6 +136,9 @@ createRoot(document.getElementById("root")!).render(
             <Routes>
               {/* The single public route — content controlled by Page Control */}
               <Route path="/" element={<Home />} />
+
+              {/* Full-screen election/results display for projectors */}
+              <Route path="/display" element={<Display />} />
 
               {/* Secure admin panel */}
               <Route path="/admin/login" element={<AdminLogin />} />
