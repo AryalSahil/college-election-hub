@@ -216,7 +216,8 @@ export function VotingView() {
                       option.class,
                       option.description,
                     ]
-                      .filter(Boolean) ([
+                      ([
+
                         option.department ?? "",
                         option.semester ?? "",
                         option.class ?? "",
