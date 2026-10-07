@@ -20,9 +20,7 @@ import { errorMessage } from "@/lib/errors";
 import type { Id } from "@/convex/_generated/dataModel";
 
 /** Sentinel choice id for NOTA — mirrors `NOTA` in src/convex/schema.ts. */
-const NOTA_ID = "NOTA";
-
-type ChoiceId = Id<"candidates"> | typeof NOTA_ID;
+type ChoiceId = Id<"candidates"> | "NOTA";
 
 type Ballot = NonNullable<FunctionReturnType<typeof api.voting.publicBallot>>;
 

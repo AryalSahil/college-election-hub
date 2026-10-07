@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import type { Doc } from "./_generated/dataModel";
-import type { QueryCtx } from "./helpers";
+import type { Doc, Id } from "./_generated/dataModel";
 import {
   computePublicPage,
   ensureElection,
@@ -14,7 +13,7 @@ import {
 } from "./helpers";
 
 type NotificationRow = {
-  id: string;
+  id: Id<"notifications">;
   title: string;
   content: string;
   published: boolean;

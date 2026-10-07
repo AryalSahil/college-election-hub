@@ -10,7 +10,7 @@
  */
 import type { GenericMutationCtx, GenericQueryCtx } from "convex/server";
 import type { DataModel, Doc } from "./_generated/dataModel";
-import { NOTA, type PublicPage } from "./schema";
+import type { PublicPage } from "./schema";
 
 export type QueryCtx = GenericQueryCtx<DataModel>;
 export type MutationCtx = GenericMutationCtx<DataModel>;

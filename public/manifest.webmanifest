@@ -1,11 +1,11 @@
 {
-  "name": "freebuff.com application",
-  "short_name": "freebuff.com",
-  "description": "freebuff.com application",
+  "name": "Pragjyotish College Election 2026",
+  "short_name": "PCE Election",
+  "description": "Official student election portal of Pragjyotish College.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "theme_color": "#16295c",
   "icons": [
     {
       "src": "/logo.svg",

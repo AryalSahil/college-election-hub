@@ -1,6 +1,6 @@
 import '@vly-ai/integrations';
 import { Toaster } from "@/components/ui/sonner";
-import { RequireAuth } from "@/components/RequireAuth";
+import { RequireAdmin } from "@/components/admin/RequireAdmin";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
@@ -10,9 +10,23 @@ import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import "./index.css";
 
 // Lazy load route components for better code splitting
-const Landing = lazy(() => import("./pages/Landing.tsx"));
-const AuthPage = lazy(() => import("./pages/Auth.tsx"));
-const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
+const Home = lazy(() => import("./pages/Home.tsx"));
+const AdminLogin = lazy(() => import("./pages/admin/AdminLogin.tsx"));
+const AdminLayout = lazy(() => import("./pages/admin/AdminLayout.tsx"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.tsx"));
+const AdminElection = lazy(() => import("./pages/admin/AdminElection.tsx"));
+const AdminPosts = lazy(() => import("./pages/admin/AdminPosts.tsx"));
+const AdminCandidates = lazy(() => import("./pages/admin/AdminCandidates.tsx"));
+const AdminVoting = lazy(() => import("./pages/admin/AdminVoting.tsx"));
+const AdminResults = lazy(() => import("./pages/admin/AdminResults.tsx"));
+const AdminNotifications = lazy(
+  () => import("./pages/admin/AdminNotifications.tsx"),
+);
+const AdminPageControl = lazy(
+  () => import("./pages/admin/AdminPageControl.tsx"),
+);
+const AdminActivity = lazy(() => import("./pages/admin/AdminActivity.tsx"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -55,8 +69,8 @@ class RootErrorBoundary extends React.Component<
       stack: error.stack || "",
     };
   }
-  componentDidCatch(err: Error) {
-    console.error("[Preview] Root crash:", err);
+  componentDidCatch(error: Error) {
+    console.error("[Preview] Root crash:", error);
   }
   render() {
     if (this.state.hasError) {
@@ -64,11 +78,11 @@ class RootErrorBoundary extends React.Component<
         <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
           <div className="max-w-lg text-center">
             <p className="text-sm font-semibold">Preview runtime error</p>
-            <p className="mt-2 text-xs text-muted-foreground break-words">
+            <p className="text-xs text-muted-foreground break-words mt-1">
               {this.state.message}
             </p>
             {this.state.stack && (
-              <pre className="mt-3 text-left text-[10px] leading-4 text-muted-foreground/80 max-h-40 overflow-auto rounded border border-border/60 p-2">
+              <pre className="mt-3 text-left text-[10px] leading-4 text-muted-foreground/80 break-all max-h-40 overflow-auto rounded border border-border/60 p-2">
                 {this.state.stack}
               </pre>
             )}
@@ -119,19 +133,34 @@ createRoot(document.getElementById("root")!).render(
           <RouteSyncer />
           <Suspense fallback={<RouteLoading />}>
             <Routes>
-              <Route path="/" element={<Landing />} />
+              {/* The single public route — content controlled by Page Control */}
+              <Route path="/" element={<Home />} />
+
+              {/* Secure admin panel */}
+              <Route path="/admin/login" element={<AdminLogin />} />
               <Route
-                path="/auth"
-                element={<AuthPage redirectAfterAuth="/dashboard" />}
-              />
-              <Route
-                path="/dashboard"
+                path="/admin"
                 element={
-                  <RequireAuth>
-                    <Dashboard />
-                  </RequireAuth>
+                  <RequireAdmin>
+                    <AdminLayout />
+                  </RequireAdmin>
                 }
-              />
+              >
+                <Route index element={<AdminDashboard />} />
+                <Route path="election" element={<AdminElection />} />
+                <Route path="posts" element={<AdminPosts />} />
+                <Route path="candidates" element={<AdminCandidates />} />
+                <Route path="voting" element={<AdminVoting />} />
+                <Route path="results" element={<AdminResults />} />
+                <Route
+                  path="notifications"
+                  element={<AdminNotifications />}
+                />
+                <Route path="page-control" element={<AdminPageControl />} />
+                <Route path="activity" element={<AdminActivity />} />
+                <Route path="settings" element={<AdminSettings />} />
+              </Route>
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

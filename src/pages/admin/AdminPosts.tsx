@@ -2,8 +2,6 @@ import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import {
-  ArrowDown,
-  ArrowUp,
   ChevronDown,
   ChevronUp,
   ListOrdered,

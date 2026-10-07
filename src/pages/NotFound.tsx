@@ -1,26 +1,36 @@
+import { Link } from "react-router";
 import { motion } from "framer-motion";
+import { Brand } from "@/components/Brand";
+import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
-    <motion.div
+    <motion.main
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen flex flex-col"
+      transition={{ duration: 0.4 }}
+      className="flex min-h-screen flex-col bg-background text-foreground"
     >
-
-      
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <div className="max-w-5xl mx-auto relative px-4">
-          <div className="flex items-center justify-center min-h-[200px]">
-            <div className="text-center">
-              <h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
-              <p className="text-lg text-gray-600">Page Not Found</p>
-            </div>
-          </div>
+      <header className="border-b border-border/70">
+        <div className="mx-auto flex h-16 w-full max-w-3xl items-center px-5">
+          <Brand />
         </div>
+      </header>
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-5 text-center">
+        <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
+          Error 404
+        </p>
+        <h1 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">
+          Page Not Found
+        </h1>
+        <div className="mt-5 h-px w-14 bg-border" />
+        <p className="mt-5 max-w-md text-sm leading-relaxed text-muted-foreground">
+          The page you are looking for does not exist on the election portal.
+        </p>
+        <Button asChild className="mt-7">
+          <Link to="/">Go to the election page</Link>
+        </Button>
       </div>
-    </motion.div>
+    </motion.main>
   );
 }

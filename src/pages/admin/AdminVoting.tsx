@@ -23,7 +23,12 @@ const ACTIONS: {
   target: Target;
   label: string;
   icon: React.ReactNode;
-  variant: "default" | "outline" | "destructive" | "secondary";
+  variant:
+    | "default"
+    | "outline"
+    | "destructive"
+    | "secondary"
+    | "ghost";
 }[] = [
   { target: "open", label: "Open Voting", icon: <Play className="size-4" />, variant: "default" },
   { target: "paused", label: "Pause Voting", icon: <Pause className="size-4" />, variant: "outline" },
