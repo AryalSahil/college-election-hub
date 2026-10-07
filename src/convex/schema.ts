@@ -1,0 +1,170 @@
+import { authTables } from "@convex-dev/auth/server";
+import { defineSchema, defineTable } from "convex/server";
+import { Infer, v } from "convex/values";
+
+// default user roles. can add / remove based on the project as needed
+export const ROLES = {
+  ADMIN: "admin",
+  USER: "user",
+  MEMBER: "member",
+} as const;
+
+export const roleValidator = v.union(
+  v.literal(ROLES.ADMIN),
+  v.literal(ROLES.USER),
+  v.literal(ROLES.MEMBER),
+);
+export type Role = Infer<typeof roleValidator>;
+
+/** Which single page the public `/` route renders. One value at a time. */
+export const publicPageValidator = v.union(
+  v.literal("voting"),
+  v.literal("results"),
+  v.literal("notifications"),
+  v.literal("none"),
+);
+export type PublicPage = Infer<typeof publicPageValidator>;
+
+/** Voting lifecycle controlled from the admin Voting screen. */
+export const votingStatusValidator = v.union(
+  v.literal("not_started"),
+  v.literal("open"),
+  v.literal("paused"),
+  v.literal("closed"),
+);
+export type VotingStatus = Infer<typeof votingStatusValidator>;
+
+/** Election lifecycle shown on the admin dashboard. */
+export const electionStatusValidator = v.union(
+  v.literal("draft"),
+  v.literal("active"),
+  v.literal("completed"),
+);
+export type ElectionStatus = Infer<typeof electionStatusValidator>;
+
+/**
+ * Sentinel choice id for "NOTA — None of the Above".
+ * NOTA is never stored as a candidate row; it is appended to every post
+ * automatically so administrators cannot create duplicate NOTA candidates.
+ */
+export const NOTA = "NOTA" as const;
+
+const schema = defineSchema(
+  {
+    // default auth tables using convex auth.
+    ...authTables, // do not remove or modify
+
+    // the users table is the default users table that is brought in by the authTables
+    users: defineTable({
+      name: v.optional(v.string()), // name of the user. do not remove
+      image: v.optional(v.string()), // image of the user. do not remove
+      email: v.optional(v.string()), // email of the user. do not remove
+      emailVerificationTime: v.optional(v.number()), // email verification time. do not remove
+      isAnonymous: v.optional(v.boolean()), // is the user anonymous. do not remove
+
+      role: v.optional(roleValidator), // role of the user. do not remove
+    }).index("email", ["email"]), // index for the email. do not remove or modify
+
+    // ------------------------------------------------------------------
+    // College election application tables
+    // ------------------------------------------------------------------
+
+    // One row controls the whole public experience (single source of truth,
+    // so contradictory combinations like "voting + results" are impossible).
+    settings: defineTable({
+      key: v.string(), // always "global"
+      activePublicPage: publicPageValidator,
+      maintenanceMode: v.boolean(),
+      resultsVisibility: v.boolean(),
+      votingStatus: votingStatusValidator,
+      updatedAt: v.number(),
+    }).index("by_key", ["key"]),
+
+    // The single election for this deployment.
+    elections: defineTable({
+      name: v.string(),
+      year: v.string(),
+      status: electionStatusValidator,
+      description: v.optional(v.string()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    }),
+
+    // Election posts (offices), ordered by displayOrder.
+    posts: defineTable({
+      electionId: v.id("elections"),
+      name: v.string(),
+      description: v.optional(v.string()),
+      displayOrder: v.number(),
+      active: v.boolean(),
+    }).index("by_election", ["electionId"]),
+
+    // Candidates. NOTA is NOT a row in this table — it is virtual.
+    candidates: defineTable({
+      postId: v.id("posts"),
+      name: v.string(),
+      photoUrl: v.optional(v.string()),
+      department: v.optional(v.string()),
+      semester: v.optional(v.string()),
+      class: v.optional(v.string()),
+      symbol: v.optional(v.string()),
+      description: v.optional(v.string()),
+      active: v.boolean(),
+    }).index("by_post", ["postId"]),
+
+    // One row per selection on a submitted ballot. All rows for a ballot are
+    // written in a single mutation, so a partial ballot can never exist.
+    // voterToken is reserved for the future one-time voter-code system.
+    votes: defineTable({
+      electionId: v.id("elections"),
+      postId: v.id("posts"),
+      candidateId: v.union(v.id("candidates"), v.literal(NOTA)),
+      ballotId: v.string(),
+      voterToken: v.optional(v.string()),
+    })
+      .index("by_election", ["electionId"])
+      .index("by_post", ["postId"]),
+
+    // Admin-managed announcements shown on the public Notifications page.
+    notifications: defineTable({
+      electionId: v.id("elections"),
+      title: v.string(),
+      content: v.string(),
+      published: v.boolean(),
+      scheduledFor: v.optional(v.number()),
+      updatedAt: v.number(),
+    }).index("by_election", ["electionId"]),
+
+    // The single administrator account (password is stored only as a salted
+    // hash and is never returned by any query).
+    admins: defineTable({
+      key: v.string(), // always "admin"
+      passwordHash: v.string(),
+      salt: v.string(),
+      authVersion: v.number(),
+      failedAttempts: v.number(),
+      lockedUntil: v.optional(v.number()),
+      updatedAt: v.number(),
+    }).index("by_key", ["key"]),
+
+    // Server-issued session tokens (only the SHA-256 hash is stored).
+    adminSessions: defineTable({
+      tokenHash: v.string(),
+      authVersion: v.number(),
+      expiresAt: v.number(),
+      createdAt: v.number(),
+    }).index("by_token", ["tokenHash"]),
+
+    // Audit trail of important admin operations.
+    activityLogs: defineTable({
+      action: v.string(),
+      detail: v.string(),
+      createdAt: v.number(),
+    }),
+  },
+  {
+    schemaValidation: false,
+  },
+);
+
+export default schema;
