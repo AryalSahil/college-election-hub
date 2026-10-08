@@ -210,20 +210,10 @@ export function VotingView() {
                 >
                   {post.options.map((option) => {
                     const selected = selections[post.id] === option.id;
-                    const meta = ([
-                      option.department,
-                      option.semester,
-                      option.class,
-                      option.description,
-                    ]
-                      ([
-
-                        option.department ?? "",
-                        option.semester ?? "",
-                        option.class ?? "",
-                        option.description ?? "",
-                      ]).filter(Boolean)
-                      .join(" · ");
+                                                                                                                                                                                    const meta = `${(option.department ?? "")}` + (option.semester ? ` · ${option.semester}` : "") + (option.class ? ` · ${option.class}` : "") + (option.description ? ` · ${option.description}` : "")${(option.department ?? "")}` + (option.semester ? ` · ${option.semester}` : "") + (option.class ? ` · ${option.class}` : "") + (option.description ? ` · ${option.description}` : "")
+ `${(option.department ?? "")}` + (option.semester ? ` · ${option.semester}` : "") + (option.class ? ` · ${option.class}` : "") + (option.description ? ` · ${option.description}` : "")
+ `${(option.department ?? "")}` + (option.semester ? ` · ${option.semester}` : "") + (option.class ? ` · ${option.class}` : "") + (option.description ? ` · ${option.description}` : "")
+ `${(option.department ?? "")}` + (option.semester ? ` · ${option.semester}` : "") + (option.class ? ` · ${option.class}` : "") + (option.description ? ` · ${option.description}` : "")\n `${(option.department ?? "")}` + (option.semester ? ` · ${option.semester}` : "") + (option.class ? ` · ${option.class}` : "") + (option.description ? ` · ${option.description}` : "")\n `${(option.department ?? "")}` + (option.semester ? ` · ${option.semester}` : "") + (option.class ? ` · ${option.class}` : "") + (option.description ? ` · ${option.description}` : "") `${(option.department ?? "")}${(option.department ? " · " : "")}${(option.semester ?? "")}${(option.semester && option.class ? " · " : "")}${(option.class ?? "")}${(option.class && option.description ? " · " : "")}${(option.description ?? "")}`
                     return (
                       <label
                         key={option.id}
