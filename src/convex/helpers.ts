@@ -91,7 +91,11 @@ export function isNotaName(name: string): boolean {
 // ---------------------------------------------------------------------------
 
 export const IMAGE_MAX_BYTES = 2 * 1024 * 1024; // 2 MB
-export type ImageKind = "logo" | "candidate";
+export type ImageKind = "logo" | "candidate" | "favicon" | "winner";
+
+/** Favicon-specific rules (smaller than general images). */
+export const FAVICON_MAX_BYTES = 512 * 1024; // 512 KB
+export const FAVICON_ACCEPTED_TYPES = "image/png,image/x-icon,image/vnd.microsoft.icon,image/webp,image/svg+xml";
 
 function startsWith(bytes: Uint8Array, signature: number[], offset = 0): boolean {
   if (bytes.length < offset + signature.length) return false;
@@ -253,10 +257,20 @@ export function validateImageUpload(
   if (data.byteLength === 0) {
     throw new Error("The uploaded file is empty.");
   }
-  if (data.byteLength > IMAGE_MAX_BYTES) {
-    const label = kind === "logo" ? "Logo" : "Candidate photo";
+  const kindLabels: Record<ImageKind, string> = {
+    logo: "Logo",
+    candidate: "Candidate photo",
+    favicon: "Favicon",
+    winner: "Winner photo",
+  };
+  const maxBytes = kind === "favicon" ? FAVICON_MAX_BYTES : IMAGE_MAX_BYTES;
+  if (data.byteLength > maxBytes) {
     throw new Error(
-      `${label} is too large. Maximum size is ${IMAGE_MAX_BYTES / (1024 * 1024)} MB.`,
+      `${kindLabels[kind]} is too large. Maximum size is ${
+        maxBytes >= 1024 * 1024
+          ? `${maxBytes / (1024 * 1024)} MB`
+          : `${maxBytes / 1024} KB`
+      }.`,
     );
   }
 
@@ -264,7 +278,7 @@ export function validateImageUpload(
   if (!type) {
     throw new Error("Unsupported file type. Use PNG, JPG, WebP, or SVG.");
   }
-  const label = kind === "logo" ? "Logo" : "Candidate photo";
+  const label = kindLabels[kind];
   if (type !== "svg") {
     const dimensions = readImageDimensions(data, type);
     if (!dimensions) {
@@ -339,6 +353,8 @@ export type ResolvedSettings = {
   logoStorageId?: Id<"_storage">;
   voterCodesEnabled: boolean;
   resetVotingStatus: "not_started" | "open" | "paused" | "closed";
+  showWinnersPage: boolean;
+  faviconStorageId?: Id<"_storage">;
 };
 
 export const DEFAULT_SETTINGS: ResolvedSettings = {
@@ -349,6 +365,7 @@ export const DEFAULT_SETTINGS: ResolvedSettings = {
   collegeName: "Pragjyotish College",
   voterCodesEnabled: false,
   resetVotingStatus: "not_started",
+  showWinnersPage: true,
 };
 
 export async function getSettings(
@@ -371,6 +388,8 @@ export function resolveSettings(doc: SettingsDoc | null): ResolvedSettings {
     logoStorageId: doc.logoStorageId,
     voterCodesEnabled: doc.voterCodesEnabled ?? false,
     resetVotingStatus: doc.resetVotingStatus ?? "not_started",
+    showWinnersPage: doc.showWinnersPage ?? true,
+    faviconStorageId: doc.faviconStorageId,
   };
 }
 

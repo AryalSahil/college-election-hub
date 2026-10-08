@@ -2,6 +2,8 @@ import { validateImageUpload, type ImageKind } from "@/convex/helpers";
 
 /** File picker accept list — mirrors what the server's magic-byte check allows. */
 export const ACCEPTED_IMAGE_TYPES = "image/png,image/jpeg,image/webp,image/svg+xml";
+/** Favicon picker: ICO is accepted here and validated by magic bytes on the server. */
+export const FAVICON_ACCEPT = "image/png,image/x-icon,image/vnd.microsoft.icon,image/webp,image/svg+xml";
 export const IMAGE_MAX_MB = 2;
 
 /**

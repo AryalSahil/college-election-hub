@@ -13,7 +13,12 @@ import { imageBlob, validateImageUpload } from "./helpers";
 export const upload = action({
   args: {
     token: v.string(),
-    kind: v.union(v.literal("logo"), v.literal("candidate")),
+    kind: v.union(
+      v.literal("logo"),
+      v.literal("candidate"),
+      v.literal("favicon"),
+      v.literal("winner"),
+    ),
     bytes: v.bytes(),
   },
   handler: async (ctx, args) => {

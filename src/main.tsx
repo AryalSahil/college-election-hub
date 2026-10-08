@@ -7,10 +7,12 @@ import { ConvexReactClient } from "convex/react";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { DynamicFavicon } from "./components/DynamicFavicon";
 import "./index.css";
 
 // Lazy load route components for better code splitting
 const Home = lazy(() => import("./pages/Home.tsx"));
+const Winners = lazy(() => import("./pages/Winners.tsx"));
 const Display = lazy(() => import("./pages/Display.tsx"));
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin.tsx"));
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout.tsx"));
@@ -27,6 +29,9 @@ const AdminPageControl = lazy(
   () => import("./pages/admin/AdminPageControl.tsx"),
 );
 const AdminActivity = lazy(() => import("./pages/admin/AdminActivity.tsx"));
+const AdminOfficeBearers = lazy(
+  () => import("./pages/admin/AdminOfficeBearers.tsx"),
+);
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
@@ -126,6 +131,7 @@ function RouteSyncer() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RootErrorBoundary>
+      <DynamicFavicon />
       <ToolbarErrorBoundary>
         <VlyToolbar />
       </ToolbarErrorBoundary>
@@ -136,6 +142,9 @@ createRoot(document.getElementById("root")!).render(
             <Routes>
               {/* The single public route — content controlled by Page Control */}
               <Route path="/" element={<Home />} />
+
+              {/* Current Office Bearers + election history */}
+              <Route path="/winners" element={<Winners />} />
 
               {/* Full-screen election/results display for projectors */}
               <Route path="/display" element={<Display />} />
@@ -156,6 +165,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="candidates" element={<AdminCandidates />} />
                 <Route path="voting" element={<AdminVoting />} />
                 <Route path="results" element={<AdminResults />} />
+                <Route path="office-bearers" element={<AdminOfficeBearers />} />
                 <Route
                   path="notifications"
                   element={<AdminNotifications />}

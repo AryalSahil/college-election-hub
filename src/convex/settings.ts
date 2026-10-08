@@ -46,12 +46,17 @@ export const publicState = query({
     const logoUrl = settings.logoStorageId
       ? await ctx.storage.getUrl(settings.logoStorageId)
       : null;
+    const faviconUrl = settings.faviconStorageId
+      ? await ctx.storage.getUrl(settings.faviconStorageId)
+      : null;
     return {
       page: computePublicPage(settings),
       activePublicPage: settings.activePublicPage,
       maintenanceMode: settings.maintenanceMode,
       votingStatus: settings.votingStatus,
       resultsVisibility: settings.resultsVisibility,
+      showWinnersPage: settings.showWinnersPage ?? true,
+      faviconUrl,
       election: election
         ? { name: election.name, year: election.year, status: election.status }
         : null,
@@ -76,10 +81,13 @@ export const get = query({
     const logoUrl = settings.logoStorageId
       ? await ctx.storage.getUrl(settings.logoStorageId)
       : null;
+    const faviconUrl = settings.faviconStorageId
+      ? await ctx.storage.getUrl(settings.faviconStorageId)
+      : null;
     return {
       settings,
       currentPage: computePublicPage(settings),
-      branding: { collegeName: settings.collegeName, logoUrl },
+      branding: { collegeName: settings.collegeName, logoUrl, faviconUrl },
       election: election
         ? {
             id: election._id,
@@ -227,6 +235,65 @@ export const updateBranding = mutation({
       ctx,
       "branding.update",
       `College branding updated (${logoNote}) · Admin · ${collegeName}`,
+    );
+    return { ok: true as const };
+  },
+});
+
+/**
+ * Admin: save the favicon — upload/replace/remove. Validated server-side by
+ * the images.upload action ("favicon" kind) before the storage id arrives here.
+ */
+export const updateFavicon = mutation({
+  args: {
+    token: v.string(),
+    faviconStorageId: v.optional(v.id("_storage")),
+    faviconRemoved: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.token);
+    const settings = await getOrCreateSettings(ctx);
+    const previousId = settings.faviconStorageId;
+    let note = "no favicon change";
+
+    if (args.faviconStorageId && args.faviconStorageId !== previousId) {
+      if (previousId) await ctx.storage.delete(previousId);
+      await ctx.db.patch(settings._id, {
+        faviconStorageId: args.faviconStorageId,
+        updatedAt: Date.now(),
+      });
+      note = "favicon uploaded";
+    } else if (args.faviconRemoved) {
+      if (previousId) await ctx.storage.delete(previousId);
+      await ctx.db.patch(settings._id, {
+        faviconStorageId: undefined,
+        updatedAt: Date.now(),
+      });
+      note = "favicon removed (default in use)";
+    }
+
+    await recordActivity(ctx, "branding.favicon", `Branding favicon updated (${note})`);
+    return { ok: true as const };
+  },
+});
+
+/** Admin: show or hide the public /winners page (nav + direct access). */
+export const setShowWinnersPage = mutation({
+  args: { token: v.string(), enabled: v.boolean() },
+  handler: async (ctx, { token, enabled }) => {
+    await requireAdmin(ctx, token);
+    const settings = await getOrCreateSettings(ctx);
+    if ((settings.showWinnersPage ?? true) === enabled) {
+      return { ok: true as const };
+    }
+    await ctx.db.patch(settings._id, {
+      showWinnersPage: enabled,
+      updatedAt: Date.now(),
+    });
+    await recordActivity(
+      ctx,
+      "page.winners_toggle",
+      `Current Office Bearers page (/winners) turned ${enabled ? "ON" : "OFF"}`,
     );
     return { ok: true as const };
   },

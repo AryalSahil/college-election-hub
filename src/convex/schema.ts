@@ -85,6 +85,10 @@ const schema = defineSchema(
       voterCodesEnabled: v.optional(v.boolean()),
       // Voting status applied by "Start Fresh Election".
       resetVotingStatus: v.optional(votingStatusValidator),
+      // Whether the public /winners page is exposed (nav + direct access).
+      showWinnersPage: v.optional(v.boolean()),
+      // Optional custom favicon (admin-configurable from Branding).
+      faviconStorageId: v.optional(v.id("_storage")),
     }).index("by_key", ["key"]),
 
     // The single election for this deployment.
@@ -180,6 +184,39 @@ const schema = defineSchema(
     })
       .index("by_code", ["code"])
       .index("by_election", ["electionId"]),
+
+    // ------------------------------------------------------------------
+    // Office bearers / election history
+    // ------------------------------------------------------------------
+
+    //
+    // Winners are decoupled from live election results: an election result
+    // never automatically promotes a candidate to "current office bearer".
+    // The admin curates this table — `current: true` rows appear under
+    // "Current Office Bearers" on /winners, everything else under
+    // "Election History" grouped by `electionYear` (free-form, unlimited).
+    //
+    // `position` is stored as a name (not a post id) so history can survive
+    // posts being renamed or deleted in later elections.
+    //
+    officeBearers: defineTable({
+      name: v.string(),
+      position: v.string(),
+      electionYear: v.string(),
+      department: v.optional(v.string()),
+      semester: v.optional(v.string()),
+      className: v.optional(v.string()),
+      photoStorageId: v.optional(v.id("_storage")),
+      termStart: v.optional(v.string()),
+      termEnd: v.optional(v.string()),
+      description: v.optional(v.string()),
+      current: v.boolean(),
+      displayOrder: v.optional(v.number()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    })
+      .index("by_current", ["current"])
+      .index("by_year", ["electionYear"]),
   },
   {
     schemaValidation: false,

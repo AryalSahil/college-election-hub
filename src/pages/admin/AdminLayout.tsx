@@ -4,6 +4,7 @@ import { useMutation } from "convex/react";
 import {
   BarChart3,
   Bell,
+  Crown,
   LayoutDashboard,
   ListOrdered,
   LogOut,
@@ -77,6 +78,11 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         to: "/admin/results",
         label: "Results",
         icon: <BarChart3 className="size-4" />,
+      },
+      {
+        to: "/admin/office-bearers",
+        label: "Office Bearers",
+        icon: <Crown className="size-4" />,
       },
       {
         to: "/admin/notifications",
