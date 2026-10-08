@@ -5,7 +5,9 @@ import { Seal } from "@/components/Seal";
 import { CenteredLoader } from "@/components/Loader";
 import { useFullscreen } from "@/hooks/use-fullscreen";
 
-export type { DisplayData } from "@/convex/display";
+import type { DisplayData } from "@/convex/display";
+
+export type { DisplayData };
 
 function initialsOf(name: string): string {
   return name

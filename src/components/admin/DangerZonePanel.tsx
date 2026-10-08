@@ -174,7 +174,7 @@ export function DangerZonePanel() {
       {/* Step 1 — “Are you sure?” (first confirmation)                    */}
       {/* ---------------------------------------------------------------- */}
       <Dialog
-        open={!!dialog && (dialog.stage === "confirm" || dialog.op === "voter")}
+        open={!!dialog && (dialog.op === "voter" || dialog.stage === "confirm")}
         onOpenChange={(open) => !open && close()}
       >
         <DialogContent className="sm:max-w-md">

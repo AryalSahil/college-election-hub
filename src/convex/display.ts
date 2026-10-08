@@ -9,6 +9,7 @@ import {
   resolveSettings,
 } from "./helpers";
 import { computeResults } from "./voting";
+import type { ElectionResults } from "./voting";
 
 type DisplayPost = {
   id: Id<"posts">;
@@ -22,6 +23,24 @@ type DisplayPost = {
     semester?: string;
     class?: string;
   }[];
+};
+
+/** Shape of `data` as consumed by the `/display` page. */
+export type DisplayData = {
+  page: "voting" | "results" | "notifications" | "maintenance" | "none";
+  maintenanceMode: boolean;
+  activePublicPage: "voting" | "results" | "notifications" | "none";
+  votingStatus: "not_started" | "open" | "paused" | "closed";
+  resultsVisibility: boolean;
+  electionStatus: "draft" | "active" | "completed" | null;
+  branding: {
+    collegeName?: string;
+    logoUrl: string | null;
+    electionTitle: string;
+    year: string;
+  };
+  results: ElectionResults | null;
+  posts: DisplayPost[];
 };
 
 /**

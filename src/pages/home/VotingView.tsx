@@ -210,10 +210,14 @@ export function VotingView() {
                 >
                   {post.options.map((option) => {
                     const selected = selections[post.id] === option.id;
-                                                                                                                                                                                    const meta = `${(option.department ?? "")}` + (option.semester ? ` · ${option.semester}` : "") + (option.class ? ` · ${option.class}` : "") + (option.description ? ` · ${option.description}` : "")${(option.department ?? "")}` + (option.semester ? ` · ${option.semester}` : "") + (option.class ? ` · ${option.class}` : "") + (option.description ? ` · ${option.description}` : "")
- `${(option.department ?? "")}` + (option.semester ? ` · ${option.semester}` : "") + (option.class ? ` · ${option.class}` : "") + (option.description ? ` · ${option.description}` : "")
- `${(option.department ?? "")}` + (option.semester ? ` · ${option.semester}` : "") + (option.class ? ` · ${option.class}` : "") + (option.description ? ` · ${option.description}` : "")
- `${(option.department ?? "")}` + (option.semester ? ` · ${option.semester}` : "") + (option.class ? ` · ${option.class}` : "") + (option.description ? ` · ${option.description}` : "")\n `${(option.department ?? "")}` + (option.semester ? ` · ${option.semester}` : "") + (option.class ? ` · ${option.class}` : "") + (option.description ? ` · ${option.description}` : "")\n `${(option.department ?? "")}` + (option.semester ? ` · ${option.semester}` : "") + (option.class ? ` · ${option.class}` : "") + (option.description ? ` · ${option.description}` : "") `${(option.department ?? "")}${(option.department ? " · " : "")}${(option.semester ?? "")}${(option.semester && option.class ? " · " : "")}${(option.class ?? "")}${(option.class && option.description ? " · " : "")}${(option.description ?? "")}`
+                    const meta = [
+                      "department" in option ? option.department : undefined,
+                      "semester" in option ? option.semester : undefined,
+                      "class" in option ? option.class : undefined,
+                      "description" in option ? option.description : undefined,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ");
                     return (
                       <label
                         key={option.id}

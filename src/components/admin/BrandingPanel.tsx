@@ -83,7 +83,7 @@ export function BrandingPanel() {
           token,
           name: title,
           year: academicYear,
-          status: data.election?.status ?? "draft",
+          status: data?.election?.status ?? "draft",
         });
       }
 
