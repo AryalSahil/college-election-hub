@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router";
 import { useQuery } from "convex/react";
+import { Award } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Brand } from "@/components/Brand";
 
@@ -29,11 +31,22 @@ export function PublicShell({
       <header className="sticky top-0 z-20 border-b border-border/70 bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-3xl items-center justify-between gap-4 px-5">
           <Brand subtitle={subtitle ?? "Election Portal"} />
-          {eyebrow ? (
-            <span className="hidden text-[10px] uppercase tracking-[0.3em] text-muted-foreground sm:block">
-              {eyebrow}
-            </span>
-          ) : null}
+          <div className="flex items-center gap-4">
+            {eyebrow ? (
+              <span className="hidden text-[10px] uppercase tracking-[0.3em] text-muted-foreground sm:block">
+                {eyebrow}
+              </span>
+            ) : null}
+            {state?.showWinnersPage ? (
+              <Link
+                to="/winners"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-muted hover:text-foreground"
+              >
+                <Award className="size-3.5" />
+                Office Bearers
+              </Link>
+            ) : null}
+          </div>
         </div>
       </header>
 

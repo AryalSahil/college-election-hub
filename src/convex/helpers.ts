@@ -103,9 +103,13 @@ function startsWith(bytes: Uint8Array, signature: number[], offset = 0): boolean
 }
 
 /** Identify the real file type from magic bytes — never trust the client. */
-export function sniffImageType(bytes: Uint8Array): "png" | "jpeg" | "webp" | "svg" | null {
+export function sniffImageType(
+  bytes: Uint8Array,
+): "png" | "jpeg" | "webp" | "svg" | "ico" | null {
   if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47])) return "png";
   if (startsWith(bytes, [0xff, 0xd8, 0xff])) return "jpeg";
+  // ICO: ICONDIR header — 00 00 01 00 (reserved, type=icon, count>=1).
+  if (startsWith(bytes, [0x00, 0x00, 0x01, 0x00])) return "ico";
   if (
     startsWith(bytes, [0x52, 0x49, 0x46, 0x46]) && // "RIFF"
     startsWith(bytes, [0x57, 0x45, 0x42, 0x50], 8) // "WEBP"
@@ -162,8 +166,15 @@ function le32(data: Uint8Array, offset: number): number {
  */
 export function readImageDimensions(
   data: Uint8Array,
-  type: "png" | "jpeg" | "webp",
+  type: "png" | "jpeg" | "webp" | "ico",
 ): { width: number; height: number } | null {
+  if (type === "ico") {
+    // ICONDIR (6 bytes) + ICONDIRENTRY: width/height at offset 6/7 (0 = 256).
+    if (data.length < 6) return null;
+    const width = data[6] || 256;
+    const height = data[7] || 256;
+    return width > 0 && height > 0 ? { width, height } : null;
+  }
   if (type === "png") {
     if (data.length < 24) return null;
     // IHDR must be the first chunk: bytes 12..16 hold the chunk type.
@@ -278,6 +289,9 @@ export function validateImageUpload(
   if (!type) {
     throw new Error("Unsupported file type. Use PNG, JPG, WebP, or SVG.");
   }
+  if (type === "ico" && kind !== "favicon") {
+    throw new Error("ICO files are only supported for favicons.");
+  }
   const label = kindLabels[kind];
   if (type !== "svg") {
     const dimensions = readImageDimensions(data, type);
@@ -287,9 +301,10 @@ export function validateImageUpload(
       );
     }
     const { width, height } = dimensions;
-    if (width < IMAGE_MIN_DIMENSION || height < IMAGE_MIN_DIMENSION) {
+    const minDimension = kind === "favicon" ? 16 : IMAGE_MIN_DIMENSION;
+    if (width < minDimension || height < minDimension) {
       throw new Error(
-        `${label} must be at least ${IMAGE_MIN_DIMENSION}×${IMAGE_MIN_DIMENSION} pixels.`,
+        `${label} must be at least ${minDimension}×${minDimension} pixels.`,
       );
     }
     if (width > IMAGE_MAX_DIMENSION || height > IMAGE_MAX_DIMENSION) {
@@ -320,7 +335,7 @@ export function validateImageUpload(
     }
     return { contentType: "image/svg+xml" };
   }
-  return { contentType: `image/${type}` };
+  return { contentType: type === "ico" ? "image/x-icon" : `image/${type}` };
 }
 
 /** Build the Blob stored in Convex file storage (the Supabase Storage equivalent). */

@@ -17,7 +17,7 @@ import {
 export type ImageDraft = { storageId: Id<"_storage">; previewUrl: string };
 
 type ImageUploaderProps = {
-  kind: "logo" | "candidate";
+  kind: "logo" | "candidate" | "favicon" | "winner";
   /** Currently saved image URL (already resolved server-side), if any. */
   existingUrl?: string | null;
   /** Unsaved upload from this form session. */

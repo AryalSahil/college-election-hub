@@ -511,14 +511,14 @@ export default function AdminOfficeBearers() {
                 </Button>
               </DialogFooter>
             </>
-          ) : (
+          ) : mode.kind === "add" || mode.kind === "edit" ? (
             <form onSubmit={handleSave}>
               <DialogHeader>
                 <DialogTitle className="text-left tracking-tight">
                   {mode.kind === "edit" ? "Edit Office Bearer" : "Add Winner"}
                 </DialogTitle>
                 <DialogDescription className="text-left">
-                  {mode.current
+                  {form.current
                     ? "Shown under Current Office Bearers on /winners."
                     : "Kept in Election History for the selected year."}
                 </DialogDescription>
@@ -688,7 +688,7 @@ export default function AdminOfficeBearers() {
                 </Button>
               </DialogFooter>
             </form>
-          )}
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>

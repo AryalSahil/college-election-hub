@@ -183,7 +183,6 @@ export function BrandingPanel() {
   const updateBranding = useMutation(api.settings.updateBranding);
   const updateElection = useMutation(api.election.update);
   const updateFavicon = useMutation(api.settings.updateFavicon);
-  const uploadImage = useAction(api.images.upload);
 
   const [collegeName, setCollegeName] = useState("");
   const [electionName, setElectionName] = useState("");
@@ -287,6 +286,50 @@ export function BrandingPanel() {
       />
       <form onSubmit={handleSave}>
         <PanelBody className="space-y-6">
+          {/* Favicon — applied app-wide by DynamicFavicon */}
+          <div className="grid gap-6 rounded-lg border border-border p-4 sm:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
+            <FaviconUploader
+              token={token}
+              existingUrl={data.branding.faviconUrl ?? null}
+              draft={faviconDraft}
+              removed={faviconRemoved}
+              onDraft={setFaviconDraft}
+              onRemoved={setFaviconRemoved}
+            />
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                Current favicon
+              </p>
+              <div className="flex items-center gap-4 rounded-lg border border-border bg-muted/40 px-5 py-4">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-md border border-border bg-background">
+                  {!faviconRemoved &&
+                  (faviconDraft?.previewUrl ?? data.branding.faviconUrl) ? (
+                    <img
+                      src={
+                        faviconDraft?.previewUrl ??
+                        data.branding.faviconUrl ??
+                        ""
+                      }
+                      alt="Favicon preview"
+                      className="size-8 object-contain"
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <Seal className="size-7 text-primary" />
+                  )}
+                </span>
+                <p className="min-w-0 text-xs leading-relaxed text-muted-foreground">
+                  Appears on every page — voting, results, notifications,
+                  office bearers, admin login and the admin panel. PNG, ICO,
+                  WebP or SVG · up to 512 KB. With no custom favicon, the
+                  default college favicon is used.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Logo uploader + live preview */}
           <div className="grid gap-6 sm:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
             <div className="space-y-3">

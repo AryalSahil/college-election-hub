@@ -69,6 +69,7 @@ export default function AdminSettings() {
   const setMaintenance = useMutation(api.settings.setMaintenance);
   const setResultsVisibility = useMutation(api.settings.setResultsVisibility);
   const setVoterCodesEnabled = useMutation(api.settings.setVoterCodesEnabled);
+  const setShowWinnersPage = useMutation(api.settings.setShowWinnersPage);
   const setResetVotingStatus = useMutation(api.settings.setResetVotingStatus);
   const navigate = useNavigate();
 
@@ -336,6 +337,26 @@ export default function AdminSettings() {
                   }
                 />
               </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 rounded-md border border-border px-4 py-3.5">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">
+                  Show Current Office Bearers Page
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Controls `/winners` in public navigation and direct access.
+                  Independent of the voting page.
+                </p>
+              </div>
+              <Switch
+                checked={settings?.showWinnersPage ?? true}
+                onCheckedChange={(checked) =>
+                  void guard(() =>
+                    setShowWinnersPage({ token, enabled: checked }),
+                  )
+                }
+              />
             </div>
 
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
