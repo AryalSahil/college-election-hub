@@ -11,6 +11,7 @@ import { ResultPost } from "@/components/ResultPost";
  */
 export function ResultsView() {
   const data = useQuery(api.voting.publicResults);
+  const appearance = useQuery(api.settings.appearance);
 
   if (data === undefined) return <CenteredLoader label="Loading results" />;
   if (data === null) return null;
@@ -50,7 +51,12 @@ export function ResultsView() {
 
           <div className="mt-10 space-y-10">
             {(data.results?.posts ?? []).map((post, index) => (
-              <ResultPost key={post.postId} post={post} index={index} />
+              <ResultPost
+                key={post.postId}
+                post={post}
+                index={index}
+                showPhotos={appearance?.showPersonPhotos ?? true}
+              />
             ))}
           </div>
         </div>

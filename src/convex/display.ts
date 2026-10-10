@@ -8,6 +8,8 @@ import {
   resolveCandidatePhoto,
   resolveSettings,
 } from "./helpers";
+import { resolveAppearance } from "./settings";
+import type { AppearanceSettings } from "./settings";
 import { computeResults } from "./voting";
 import type { ElectionResults } from "./voting";
 
@@ -32,6 +34,7 @@ export type DisplayData = {
   activePublicPage: "voting" | "results" | "notifications" | "none";
   votingStatus: "not_started" | "open" | "paused" | "closed";
   resultsVisibility: boolean;
+  appearance: AppearanceSettings;
   electionStatus: "draft" | "active" | "completed" | null;
   branding: {
     collegeName?: string;
@@ -104,6 +107,7 @@ export const data = query({
       activePublicPage: settings.activePublicPage,
       votingStatus: settings.votingStatus,
       resultsVisibility: settings.resultsVisibility,
+      appearance: resolveAppearance(settings),
       electionStatus: election?.status ?? null,
       branding: {
         collegeName: settings.collegeName,

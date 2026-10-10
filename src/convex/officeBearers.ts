@@ -7,6 +7,7 @@ import {
   resolveSettings,
   verifySession,
 } from "./helpers";
+import { resolveAppearance } from "./settings";
 
 // ---------------------------------------------------------------------------
 // Office Bearers / Current Winners / Election History
@@ -107,6 +108,7 @@ export const publicWinners = query({
 
     return {
       enabled: settings.showWinnersPage ?? true,
+      appearance: resolveAppearance(settings),
       branding: { collegeName: settings.collegeName, logoUrl },
       current,
       years,

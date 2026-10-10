@@ -1,21 +1,21 @@
 import { Ban, Check, Trophy } from "lucide-react";
 import type { ElectionResults } from "@/convex/voting";
+import { initialsOf } from "@/components/PersonPhoto";
 
 export type PostResult = ElectionResults["posts"][number];
 type OptionResult = PostResult["options"][number];
 
-function initialsOf(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
 /** Small candidate photo with an initials fallback underneath. */
-function Thumb({ option, size }: { option: OptionResult; size: number }) {
-  if (option.isNota) {
+function Thumb({
+  option,
+  size,
+  showPhotos,
+}: {
+  option: OptionResult;
+  size: number;
+  showPhotos: boolean;
+}) {
+  if (option.isNota || !showPhotos) {
     return (
       <span
         className="flex shrink-0 items-center justify-center rounded-md border border-border bg-muted text-muted-foreground"
@@ -37,7 +37,7 @@ function Thumb({ option, size }: { option: OptionResult; size: number }) {
       {option.photoUrl && (
         <img
           src={option.photoUrl}
-          alt={option.name}
+          alt={`Portrait of ${option.name}`}
           className="absolute inset-0 size-full object-cover"
           onError={(event) => {
             event.currentTarget.style.display = "none";
@@ -51,8 +51,18 @@ function Thumb({ option, size }: { option: OptionResult; size: number }) {
 /**
  * One post's tally: photo rows with vote counts, percentages, bars, and a
  * highlighted winner card at the top. NOTA never shows a candidate photo.
+ * `showPhotos` follows the admin's global candidate-photo toggle.
  */
-export function ResultPost({ post, index }: { post: PostResult; index: number }) {
+export function ResultPost({
+  post,
+  index,
+  showPhotos,
+}: {
+  post: PostResult;
+  index: number;
+  showPhotos: boolean;
+}) {
+  const thumbSize = showPhotos ? 40 : 32;
   const winner =
     post.totalVotes > 0
       ? post.options.find((option) => option.isWinner && !option.isNota)
@@ -84,7 +94,7 @@ export function ResultPost({ post, index }: { post: PostResult; index: number })
           {/* Winner card */}
           {winner && (
             <div className="mb-5 flex items-center gap-4 rounded-xl border-2 border-primary/40 bg-primary/[0.05] p-4 sm:gap-5 sm:p-5">
-              <Thumb option={winner} size={72} />
+              <Thumb option={winner} size={showPhotos ? 72 : 56} showPhotos={showPhotos} />
               <div className="min-w-0">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
                   <Trophy className="size-3" strokeWidth={2.4} />
@@ -118,7 +128,7 @@ export function ResultPost({ post, index }: { post: PostResult; index: number })
               ].join(" ")}
             >
               <div className="flex items-center gap-3">
-                <Thumb option={option} size={40} />
+                <Thumb option={option} size={thumbSize} showPhotos={showPhotos} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-4">
                     <span

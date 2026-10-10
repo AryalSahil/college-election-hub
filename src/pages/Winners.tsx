@@ -5,6 +5,7 @@ import { Award, ChevronLeft, History } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Seal } from "@/components/Seal";
 import { CenteredLoader } from "@/components/Loader";
+import { initialsOf } from "@/components/PersonPhoto";
 import {
   Dialog,
   DialogContent,
@@ -27,15 +28,6 @@ type Bearer = {
   description?: string;
 };
 
-function initialsOf(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
 function metaLine(bearer: Bearer): string {
   return [bearer.department, bearer.semester, bearer.className]
     .filter(Boolean)
@@ -49,15 +41,17 @@ function termLine(bearer: Bearer): string | null {
   return bearer.termStart ?? bearer.termEnd ?? null;
 }
 
-/** Winner card — photo, name, position, meta, year, term, serving status. */
+/** Winner card — photo (when enabled), name, position, meta, year, term, status. */
 function WinnerCard({
   bearer,
   onOpen,
   serving,
+  showPhotos,
 }: {
   bearer: Bearer;
   onOpen: (bearer: Bearer) => void;
   serving?: boolean;
+  showPhotos: boolean;
 }) {
   return (
     <button
@@ -65,22 +59,24 @@ function WinnerCard({
       onClick={() => onOpen(bearer)}
       className="group flex w-full flex-col overflow-hidden rounded-xl border border-border bg-card text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring/60"
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden border-b border-border bg-muted">
-        {bearer.photoUrl ? (
-          <img
-            src={bearer.photoUrl}
-            alt={bearer.name}
-            className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-            loading="lazy"
-          />
-        ) : (
-          <span className="flex size-full items-center justify-center">
-            <span className="flex size-16 items-center justify-center rounded-full border border-border bg-background text-lg font-semibold text-primary">
-              {initialsOf(bearer.name)}
+      {showPhotos && (
+        <div className="relative aspect-[4/3] w-full overflow-hidden border-b border-border bg-muted">
+          {bearer.photoUrl ? (
+            <img
+              src={bearer.photoUrl}
+              alt={`Portrait of ${bearer.name}`}
+              className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              loading="lazy"
+            />
+          ) : (
+            <span className="flex size-full items-center justify-center">
+              <span className="flex size-16 items-center justify-center rounded-full border border-border bg-background text-lg font-semibold text-primary">
+                {initialsOf(bearer.name)}
+              </span>
             </span>
-          </span>
-        )}
-      </div>
+          )}
+        </div>
+      )}
       <div className="flex flex-1 flex-col gap-1 p-4">
         <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
           {bearer.position}
@@ -124,6 +120,8 @@ function WinnerCard({
  */
 export default function Winners() {
   const data = useQuery(api.officeBearers.publicWinners);
+  const appearance = useQuery(api.settings.appearance);
+  const showPhotos = appearance?.showPersonPhotos ?? true;
 
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
   const [detail, setDetail] = useState<Bearer | null>(null);
@@ -225,6 +223,7 @@ export default function Winners() {
                   key={bearer.id}
                   bearer={bearer}
                   serving
+                  showPhotos={showPhotos}
                   onOpen={setDetail}
                 />
               ))}
@@ -274,6 +273,7 @@ export default function Winners() {
                       key={bearer.id}
                       bearer={bearer}
                       serving={bearer.current ? true : undefined}
+                      showPhotos={showPhotos}
                       onOpen={setDetail}
                     />
                   ))}
@@ -312,19 +312,21 @@ export default function Winners() {
                 </DialogDescription>
               </DialogHeader>
               <div className="flex flex-col items-center gap-4 text-center">
-                <div className="size-28 overflow-hidden rounded-full border border-border bg-muted">
-                  {detail.photoUrl ? (
-                    <img
-                      src={detail.photoUrl}
-                      alt={detail.name}
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <span className="flex size-full items-center justify-center text-2xl font-semibold text-primary">
-                      {initialsOf(detail.name)}
-                    </span>
-                  )}
-                </div>
+                {showPhotos && (
+                  <div className="size-28 overflow-hidden rounded-full border border-border bg-muted">
+                    {detail.photoUrl ? (
+                      <img
+                        src={detail.photoUrl}
+                        alt={`Portrait of ${detail.name}`}
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <span className="flex size-full items-center justify-center text-2xl font-semibold text-primary">
+                        {initialsOf(detail.name)}
+                      </span>
+                    )}
+                  </div>
+                )}
                 <div>
                   <p className="text-lg font-semibold tracking-tight">
                     {detail.name}

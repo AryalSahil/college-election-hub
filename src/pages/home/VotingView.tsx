@@ -7,6 +7,7 @@ import { Check, Ban, TriangleAlert } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { FadeIn } from "@/components/FadeIn";
 import { CenteredLoader } from "@/components/Loader";
+import { initialsOf, personImageProps } from "@/components/PersonPhoto";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,14 +31,6 @@ const VOTING_NOTICES: Record<string, string> = {
   closed: "Voting is closed. Submissions are disabled.",
 };
 
-function initialsOf(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
 
 function optionLabel(
   post: Ballot["posts"][number],
@@ -55,6 +48,7 @@ function optionLabel(
  */
 export function VotingView() {
   const ballot = useQuery(api.voting.publicBallot);
+  const appearance = useQuery(api.settings.appearance);
   const castVote = useMutation(api.voting.castVote);
 
   const [selections, setSelections] = useState<Record<string, ChoiceId>>({});
@@ -218,15 +212,28 @@ export function VotingView() {
                     ]
                       .filter(Boolean)
                       .join(" · ");
+                    const image = personImageProps(appearance, option);
+                    // Layout: "compact" rows keep a small photo beside the
+                    // name; "grid" keeps the current card grid; "list" is a
+                    // square-photo single column.
+                    const compactLayout =
+                      (appearance?.personImageLayout ?? "compact") === "compact";
+                    const listLayout =
+                      (appearance?.personImageLayout ?? "compact") === "list";
+                    const rowLayout = (compactLayout || listLayout) && !option.isNota;
                     return (
                       <label
                         key={option.id}
                         className={[
-                          "group flex cursor-pointer flex-col overflow-hidden rounded-xl border-2 bg-card p-3 transition-all sm:p-4",
+                          "group flex cursor-pointer rounded-xl border-2 bg-card p-3 transition-all sm:p-4",
                           "hover:border-primary/40 hover:shadow-sm",
                           "has-[:checked]:border-primary has-[:checked]:bg-primary/[0.04] has-[:checked]:shadow-sm",
                           "has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-ring/60",
-                          option.isNota ? "sm:col-span-2" : "",
+                          option.isNota
+                            ? "sm:col-span-2"
+                            : rowLayout
+                              ? "flex-row items-center gap-4"
+                              : "flex-col",
                           !isOpen ? "cursor-not-allowed opacity-60" : "",
                         ].join(" ")}
                       >
@@ -241,48 +248,52 @@ export function VotingView() {
                         />
 
                         {/* Photo (NOTA gets an illustration instead) */}
-                        <div
-                          className={[
-                            "relative w-full overflow-hidden rounded-lg border border-border bg-muted",
-                            option.isNota
-                              ? "flex aspect-[16/6] items-center justify-center"
-                              : "aspect-square sm:aspect-[4/3]",
-                          ].join(" ")}
-                        >
-                          {option.isNota ? (
+                        {option.isNota ? (
+                          <div className="flex aspect-[16/6] w-full items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
                             <div className="flex flex-col items-center gap-2 text-muted-foreground">
                               <Ban className="size-9" strokeWidth={1.6} />
                               <span className="text-[10px] uppercase tracking-[0.3em]">
                                 None of the Above
                               </span>
                             </div>
-                          ) : (
-                            <>
-                              {/* Placeholder underneath so a broken image falls back gracefully */}
-                              <div className="absolute inset-0 flex items-center justify-center text-2xl font-semibold uppercase tracking-wide text-muted-foreground sm:text-3xl">
-                                {initialsOf(option.name)}
-                              </div>
-                              {option.photoUrl && (
-                                <img
-                                  src={option.photoUrl}
-                                  alt={option.name}
-                                  className="absolute inset-0 size-full object-cover"
-                                  onError={(event) => {
-                                    event.currentTarget.style.display = "none";
-                                  }}
-                                />
-                              )}
-                              {selected && (
-                                <span className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
-                                  <Check className="size-4" strokeWidth={3} />
-                                </span>
-                              )}
-                            </>
-                          )}
-                        </div>
+                          </div>
+                        ) : image ? (
+                          <div
+                            className={[
+                              "relative shrink-0 overflow-hidden border border-border bg-muted",
+                              image.roundedClass,
+                              image.sizeClass,
+                            ].join(" ")}
+                          >
+                            {/* Placeholder underneath so a broken image falls back gracefully */}
+                            <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              {initialsOf(option.name)}
+                            </div>
+                            {option.photoUrl && (
+                              <img
+                                src={option.photoUrl}
+                                alt={`Portrait of ${option.name}`}
+                                className="absolute inset-0 size-full object-cover"
+                                onError={(event) => {
+                                  event.currentTarget.style.display = "none";
+                                }}
+                              />
+                            )}
+                            {selected && (
+                              <span className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
+                                <Check className="size-3.5" strokeWidth={3} />
+                              </span>
+                            )}
+                          </div>
+                        ) : null}
 
                         {/* Name + meta */}
-                        <div className="mt-3 flex flex-1 flex-col items-center text-center">
+                        <div
+                          className={[
+                            "flex flex-1 flex-col",
+                            rowLayout ? "min-w-0 items-start text-left" : "items-center text-center",
+                          ].join(" ")}
+                        >
                           <p className="text-base font-semibold leading-snug sm:text-lg">
                             {option.name}
                           </p>
@@ -297,11 +308,6 @@ export function VotingView() {
                                   {meta}
                                 </p>
                               )}
-                              {option.description && (
-                                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground/80">
-                                  {option.description}
-                                </p>
-                              )}
                               {option.symbol && (
                                 <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                                   {option.symbol}
@@ -314,7 +320,8 @@ export function VotingView() {
                         {/* Select indicator */}
                         <div
                           className={[
-                            "mt-3 flex items-center justify-center gap-2.5 border-t border-border/70 pt-3 text-sm font-medium",
+                            "mt-3 flex items-center gap-2.5 border-t border-border/70 pt-3 text-sm font-medium",
+                            rowLayout ? "justify-end sm:justify-end" : "justify-center",
                             selected
                               ? "text-primary"
                               : "text-muted-foreground",

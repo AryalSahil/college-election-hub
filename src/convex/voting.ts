@@ -17,6 +17,7 @@ import {
   resolveSettings,
   verifySession,
 } from "./helpers";
+import { resolveAppearance } from "./settings";
 
 // ---------------------------------------------------------------------------
 // Result computation (shared by the admin Results screen and the public
@@ -201,6 +202,7 @@ export const publicBallot = query({
       election: { name: election.name, year: election.year },
       votingStatus: settings.votingStatus,
       voterCodesEnabled: settings.voterCodesEnabled,
+      appearance: resolveAppearance(settings),
       posts: ballotPosts,
     };
   },
@@ -343,6 +345,7 @@ export const publicResults = query({
       election: { name: election.name, year: election.year },
       votingStatus: settings.votingStatus,
       published: settings.resultsVisibility,
+      appearance: resolveAppearance(settings),
       results: settings.resultsVisibility
         ? await computeResults(ctx, election)
         : null,

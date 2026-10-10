@@ -115,7 +115,12 @@ export default function AdminResults() {
 
           <div className="space-y-10">
             {results.posts.map((post, index) => (
-              <ResultPost key={post.postId} post={post} index={index} />
+              <ResultPost
+                key={post.postId}
+                post={post}
+                index={index}
+                showPhotos
+              />
             ))}
           </div>
 
