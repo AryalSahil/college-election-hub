@@ -28,7 +28,7 @@ export function PublicShell({
 
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-border/70 bg-background">
         <div className="mx-auto flex h-16 w-full max-w-3xl items-center justify-between gap-4 px-5">
           <Brand subtitle={subtitle ?? "Election Portal"} />
           <div className="flex items-center gap-4">
@@ -50,7 +50,7 @@ export function PublicShell({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 overflow-x-clip px-5 pb-16 pt-8 sm:pt-12">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-5 pb-16 pt-8 sm:pt-12">
         {children}
       </main>
 

@@ -410,8 +410,10 @@ export function VotingView() {
         </div>
       </FadeIn>
 
-      {/* Sticky submit */}
-      <div className="sticky bottom-0 z-10 -mx-5 mt-8 border-t border-border/70 bg-background/95 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 backdrop-blur">
+      {/* Sticky submit — solid background (no backdrop-filter, which can
+          break sticky rendering on some mobile browsers) so the button is
+          always visible while scrolling. */}
+      <div className="sticky bottom-0 z-10 -mx-5 mt-8 border-t border-border/70 bg-background px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-center text-xs text-muted-foreground sm:text-left">
             Your vote cannot be changed after submission.
@@ -435,7 +437,7 @@ export function VotingView() {
         </div>
       </div>
       {/* Spacer so the sticky bar never covers the last post or review card. */}
-      <div aria-hidden="true" className="h-20 sm:h-6" />
+      <div aria-hidden="true" className="h-28 sm:h-8" />
 
       {/* Confirmation modal */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
