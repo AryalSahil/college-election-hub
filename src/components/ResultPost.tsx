@@ -5,7 +5,9 @@ import { initialsOf } from "@/components/PersonPhoto";
 export type PostResult = ElectionResults["posts"][number];
 type OptionResult = PostResult["options"][number];
 
-/** Small candidate photo with an initials fallback underneath. */
+/** Small candidate photo with an initials fallback underneath. NOTA never
+ * renders here — its icon is inlined next to the name so it can never
+ * appear as a large candidate-style photo tile. */
 function Thumb({
   option,
   size,
@@ -15,17 +17,6 @@ function Thumb({
   size: number;
   showPhotos: boolean;
 }) {
-  if (option.isNota || !showPhotos) {
-    return (
-      <span
-        className="flex shrink-0 items-center justify-center rounded-md border border-border bg-muted text-muted-foreground"
-        style={{ width: size, height: size }}
-        aria-hidden="true"
-      >
-        <Ban className="size-1/2" strokeWidth={1.8} />
-      </span>
-    );
-  }
   return (
     <span
       className="relative block shrink-0 overflow-hidden rounded-md border border-border bg-muted"
@@ -34,7 +25,7 @@ function Thumb({
       <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         {initialsOf(option.name)}
       </span>
-      {option.photoUrl && (
+      {showPhotos && option.photoUrl && (
         <img
           src={option.photoUrl}
           alt={`Portrait of ${option.name}`}
@@ -44,6 +35,19 @@ function Thumb({
           }}
         />
       )}
+    </span>
+  );
+}
+
+/** Compact NOTA mark — a small muted icon, never photo-sized. */
+function NotaIcon({ size }: { size: number }) {
+  return (
+    <span
+      className="flex shrink-0 items-center justify-center rounded-md border border-border bg-muted text-muted-foreground"
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    >
+      <Ban className="shrink-0" style={{ width: size * 0.45, height: size * 0.45 }} strokeWidth={1.8} />
     </span>
   );
 }
@@ -63,6 +67,7 @@ export function ResultPost({
   showPhotos: boolean;
 }) {
   const thumbSize = showPhotos ? 40 : 32;
+  const notaSize = showPhotos ? 28 : 24;
   const winner =
     post.totalVotes > 0
       ? post.options.find((option) => option.isWinner && !option.isNota)
@@ -94,7 +99,11 @@ export function ResultPost({
           {/* Winner card */}
           {winner && (
             <div className="mb-5 flex items-center gap-4 rounded-xl border-2 border-primary/40 bg-primary/[0.05] p-4 sm:gap-5 sm:p-5">
-              <Thumb option={winner} size={showPhotos ? 72 : 56} showPhotos={showPhotos} />
+              {winner.isNota ? (
+                <NotaIcon size={showPhotos ? 40 : 32} />
+              ) : (
+                <Thumb option={winner} size={showPhotos ? 72 : 56} showPhotos={showPhotos} />
+              )}
               <div className="min-w-0">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
                   <Trophy className="size-3" strokeWidth={2.4} />
@@ -128,7 +137,11 @@ export function ResultPost({
               ].join(" ")}
             >
               <div className="flex items-center gap-3">
-                <Thumb option={option} size={thumbSize} showPhotos={showPhotos} />
+                {option.isNota ? (
+                  <NotaIcon size={notaSize} />
+                ) : (
+                  <Thumb option={option} size={thumbSize} showPhotos={showPhotos} />
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-4">
                     <span

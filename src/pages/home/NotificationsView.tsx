@@ -29,7 +29,7 @@ export function NotificationsView() {
       <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-muted-foreground">
         Announcements
       </p>
-      <h1 className="mt-3 text-2xl font-bold uppercase leading-tight tracking-[0.06em] sm:text-3xl">
+      <h1 className="mt-3 text-xl font-bold uppercase leading-tight tracking-[0.06em] min-[420px]:text-2xl sm:text-3xl">
         {data.election
           ? `${data.election.name} ${data.election.year}`
           : "Election Notifications"}

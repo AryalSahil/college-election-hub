@@ -142,7 +142,7 @@ export function VotingView() {
         <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-muted-foreground">
           Official Ballot
         </p>
-        <h1 className="mt-3 text-2xl font-bold uppercase leading-tight tracking-[0.06em] sm:text-3xl">
+        <h1 className="mt-3 text-xl font-bold uppercase leading-tight tracking-[0.06em] min-[420px]:text-2xl sm:text-3xl">
           {ballot.election.name} {ballot.election.year}
         </h1>
         <div className="mt-5 h-px w-full bg-border" />
@@ -200,7 +200,7 @@ export function VotingView() {
                 <div
                   role="radiogroup"
                   aria-label={post.name}
-                  className="mt-4 grid gap-3 sm:grid-cols-2"
+                  className="mt-4 grid auto-rows-min gap-3 sm:grid-cols-2"
                 >
                   {post.options.map((option) => {
                     const selected = selections[post.id] === option.id;
@@ -230,7 +230,7 @@ export function VotingView() {
                           "has-[:checked]:border-primary has-[:checked]:bg-primary/[0.04] has-[:checked]:shadow-sm",
                           "has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-ring/60",
                           option.isNota
-                            ? "sm:col-span-2"
+                            ? "col-span-full flex-row items-center gap-4"
                             : rowLayout
                               ? "flex-row items-center gap-4"
                               : "flex-col",
@@ -247,16 +247,14 @@ export function VotingView() {
                           className="sr-only"
                         />
 
-                        {/* Photo (NOTA gets an illustration instead) */}
+                        {/* Photo (NOTA gets a small compact icon aligned beside its label) */}
                         {option.isNota ? (
-                          <div className="flex aspect-[16/6] w-full items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
-                            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                              <Ban className="size-9" strokeWidth={1.6} />
-                              <span className="text-[10px] uppercase tracking-[0.3em]">
-                                None of the Above
-                              </span>
-                            </div>
-                          </div>
+                          <span
+                            aria-hidden="true"
+                            className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-muted-foreground sm:size-11"
+                          >
+                            <Ban className="size-4 sm:size-5" strokeWidth={1.8} />
+                          </span>
                         ) : image ? (
                           <div
                             className={[
@@ -290,16 +288,19 @@ export function VotingView() {
                         {/* Name + meta */}
                         <div
                           className={[
-                            "flex flex-1 flex-col",
-                            rowLayout ? "min-w-0 items-start text-left" : "items-center text-center",
+                            "flex min-w-0 flex-1 flex-col",
+                            option.isNota || rowLayout
+                              ? "items-start text-left"
+                              : "items-center text-center",
                           ].join(" ")}
                         >
                           <p className="text-base font-semibold leading-snug sm:text-lg">
-                            {option.name}
+                            {option.isNota ? "NOTA" : option.name}
                           </p>
                           {option.isNota ? (
-                            <p className="mt-1 text-sm text-muted-foreground">
-                              Vote against every candidate on this post.
+                            <p className="text-xs text-muted-foreground sm:text-sm">
+                              None of the Above — vote against every candidate
+                              on this post.
                             </p>
                           ) : (
                             <>
@@ -320,8 +321,8 @@ export function VotingView() {
                         {/* Select indicator */}
                         <div
                           className={[
-                            "mt-3 flex items-center gap-2.5 border-t border-border/70 pt-3 text-sm font-medium",
-                            rowLayout ? "justify-end sm:justify-end" : "justify-center",
+                            "mt-3 flex items-center justify-center gap-2.5 border-t border-border/70 pt-3 text-sm font-medium",
+                            rowLayout || option.isNota ? "sm:justify-end" : "",
                             selected
                               ? "text-primary"
                               : "text-muted-foreground",

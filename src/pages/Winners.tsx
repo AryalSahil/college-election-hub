@@ -183,7 +183,7 @@ export default function Winners() {
             <p className="text-[11px] font-medium uppercase tracking-[0.35em] text-muted-foreground">
               {collegeName}
             </p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
+            <h1 className="mt-2 text-xl font-bold tracking-tight min-[420px]:text-2xl sm:text-3xl">
               Current Office Bearers
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
