@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Check, Ban, TriangleAlert } from "lucide-react";
+import { Check, Ban, TriangleAlert, Loader2 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { FadeIn } from "@/components/FadeIn";
 import { CenteredLoader } from "@/components/Loader";
@@ -103,10 +103,14 @@ export function VotingView() {
   }
 
   function handleSubmit() {
-    if (totalPosts === 0) return;
+    if (totalPosts === 0 || submitting) return;
     const missing = summary.filter((row) => !row.choiceId);
     if (missing.length > 0) {
-      setError("Please select an option for every post.");
+      setError(
+        missing.length === 1
+          ? `Please select an option for "${missing[0].postName}".`
+          : `Please select an option for ${missing.length} more post${missing.length === 1 ? "" : "s"} before submitting.`,
+      );
       const element = document.getElementById(`post-${missing[0].postId}`);
       element?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
@@ -116,6 +120,7 @@ export function VotingView() {
   }
 
   async function confirmSubmit() {
+    if (submitting) return;
     setSubmitting(true);
     try {
       await castVote({
@@ -406,21 +411,31 @@ export function VotingView() {
       </FadeIn>
 
       {/* Sticky submit */}
-      <div className="sticky bottom-0 z-10 -mx-5 mt-8 border-t border-border/70 bg-background/95 px-5 py-4 backdrop-blur">
+      <div className="sticky bottom-0 z-10 -mx-5 mt-8 border-t border-border/70 bg-background/95 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 backdrop-blur">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-center text-xs text-muted-foreground sm:text-left">
             Your vote cannot be changed after submission.
           </p>
           <Button
             size="lg"
-            className="h-14 w-full text-base sm:w-auto sm:px-10"
-            disabled={!isOpen || totalPosts === 0}
+            type="button"
+            className="h-14 w-full shrink-0 text-base sm:w-auto sm:px-10"
+            disabled={!isOpen || totalPosts === 0 || submitting}
             onClick={handleSubmit}
           >
-            Submit Vote
+            {submitting ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Submitting…
+              </>
+            ) : (
+              "Submit Vote"
+            )}
           </Button>
         </div>
       </div>
+      {/* Spacer so the sticky bar never covers the last post or review card. */}
+      <div aria-hidden="true" className="h-20 sm:h-6" />
 
       {/* Confirmation modal */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>

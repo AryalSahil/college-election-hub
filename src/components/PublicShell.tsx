@@ -50,11 +50,11 @@ export function PublicShell({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-5 pb-16 pt-8 sm:pt-12">
+      <main className="mx-auto w-full max-w-3xl flex-1 overflow-x-clip px-5 pb-16 pt-8 sm:pt-12">
         {children}
       </main>
 
-      <footer className="border-t border-border/70">
+      <footer className="border-t border-border/70 pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-1 px-5 py-6 text-center text-[10px] uppercase tracking-[0.3em] text-muted-foreground sm:flex-row sm:justify-between sm:text-left">
           <span className="truncate">{collegeName}</span>
           <span>Academic Year {year}</span>
