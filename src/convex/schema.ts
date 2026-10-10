@@ -87,6 +87,14 @@ const schema = defineSchema(
       resetVotingStatus: v.optional(votingStatusValidator),
       // Whether the public /winners page is exposed (nav + direct access).
       showWinnersPage: v.optional(v.boolean()),
+      // Appearance: global candidate/office-bearer photo display.
+      showPersonPhotos: v.optional(v.boolean()),
+      personImageLayout: v.optional(
+        v.union(v.literal("grid"), v.literal("compact"), v.literal("list")),
+      ),
+      personImageSize: v.optional(
+        v.union(v.literal("small"), v.literal("medium"), v.literal("large")),
+      ),
       // Optional custom favicon (admin-configurable from Branding).
       faviconStorageId: v.optional(v.id("_storage")),
     }).index("by_key", ["key"]),

@@ -370,6 +370,9 @@ export type ResolvedSettings = {
   resetVotingStatus: "not_started" | "open" | "paused" | "closed";
   showWinnersPage: boolean;
   faviconStorageId?: Id<"_storage">;
+  showPersonPhotos?: boolean;
+  personImageLayout?: string;
+  personImageSize?: string;
 };
 
 export const DEFAULT_SETTINGS: ResolvedSettings = {
@@ -405,6 +408,9 @@ export function resolveSettings(doc: SettingsDoc | null): ResolvedSettings {
     resetVotingStatus: doc.resetVotingStatus ?? "not_started",
     showWinnersPage: doc.showWinnersPage ?? true,
     faviconStorageId: doc.faviconStorageId,
+    showPersonPhotos: doc.showPersonPhotos,
+    personImageLayout: doc.personImageLayout,
+    personImageSize: doc.personImageSize,
   };
 }
 
@@ -431,6 +437,11 @@ export async function getOrCreateSettings(
   const id = await ctx.db.insert("settings", {
     key: SETTINGS_KEY,
     ...DEFAULT_SETTINGS,
+    // Default appearance — keeps the public app consistent if the admin has
+    // never touched the new fields.
+    showPersonPhotos: true,
+    personImageLayout: "compact",
+    personImageSize: "medium",
     updatedAt: Date.now(),
   });
   return (await ctx.db.get(id))!;

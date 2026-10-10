@@ -16,6 +16,58 @@ import {
   verifySession,
 } from "./helpers";
 
+// ---------------------------------------------------------------------------
+// Appearance settings
+// ---------------------------------------------------------------------------
+
+export type PersonImageLayout = "grid" | "compact" | "list";
+export type PersonImageSize = "small" | "medium" | "large";
+
+export const LABEL_LAYOUT: Record<PersonImageLayout, string> = {
+  grid: "Grid Cards",
+  compact: "Small Photos",
+  list: "List View",
+};
+
+export const LABEL_SIZE: Record<PersonImageSize, string> = {
+  small: "Small",
+  medium: "Medium",
+  large: "Large",
+};
+
+const DEFAULT: {
+  showPersonPhotos: boolean;
+  personImageLayout: PersonImageLayout;
+  personImageSize: PersonImageSize;
+} = {
+  showPersonPhotos: true,
+  personImageLayout: "compact",
+  personImageSize: "medium",
+};
+
+export type AppearanceSettings = {
+  showPersonPhotos: boolean;
+  personImageLayout: PersonImageLayout;
+  personImageSize: PersonImageSize;
+};
+
+export function resolveAppearance(doc: {
+  showPersonPhotos?: boolean;
+  personImageLayout?: string;
+  personImageSize?: string;
+}): AppearanceSettings {
+  return {
+    showPersonPhotos: doc.showPersonPhotos ?? DEFAULT.showPersonPhotos,
+    personImageLayout:
+      (doc.personImageLayout as PersonImageLayout) ?? DEFAULT.personImageLayout,
+    personImageSize:
+      (doc.personImageSize as PersonImageSize) ?? DEFAULT.personImageSize,
+  };
+}
+
+// ---------------------------------------------------------------------------
+
+/** Public-facing: everything the `/` route needs. */
 export const PAGE_LABELS: Record<PublicPage, string> = {
   voting: "Voting",
   results: "Results",
@@ -42,6 +94,7 @@ export const publicState = query({
   args: {},
   handler: async (ctx) => {
     const settings = resolveSettings(await getSettings(ctx));
+    const appearance = resolveAppearance(settings);
     const election = await getActiveElection(ctx);
     const logoUrl = settings.logoStorageId
       ? await ctx.storage.getUrl(settings.logoStorageId)
@@ -56,6 +109,7 @@ export const publicState = query({
       votingStatus: settings.votingStatus,
       resultsVisibility: settings.resultsVisibility,
       showWinnersPage: settings.showWinnersPage ?? true,
+      appearance,
       faviconUrl,
       election: election
         ? { name: election.name, year: election.year, status: election.status }
@@ -70,6 +124,16 @@ export const publicState = query({
   },
 });
 
+/** Public: appearance settings only. Cheap and reactive. */
+export const appearance = query({
+  args: {},
+  handler: async (ctx) => {
+    const settings = resolveSettings(await getSettings(ctx));
+    settings.faviconStorageId; // preserve storage access in this query path
+    return resolveAppearance(settings);
+  },
+});
+
 /** Admin: full settings + election snapshot for the panel. */
 export const get = query({
   args: { token: v.string() },
@@ -77,6 +141,7 @@ export const get = query({
     const admin = await verifySession(ctx, token);
     if (!admin) return null;
     const settings = resolveSettings(await getSettings(ctx));
+    const appearance = resolveAppearance(settings);
     const election = await getActiveElection(ctx);
     const logoUrl = settings.logoStorageId
       ? await ctx.storage.getUrl(settings.logoStorageId)
@@ -86,6 +151,7 @@ export const get = query({
       : null;
     return {
       settings,
+      appearance,
       currentPage: computePublicPage(settings),
       branding: { collegeName: settings.collegeName, logoUrl, faviconUrl },
       election: election
@@ -161,6 +227,86 @@ export const setPublicPage = mutation({
       ctx,
       "page.change",
       `Public page switched from ${from} to ${PAGE_LABELS[page]}`,
+    );
+    return { ok: true as const };
+  },
+});
+
+/**
+ * Admin: person-photo display toggle. Public pages read this reactively; only
+ * admins may change it. Does not touch unrelated branding fields.
+ */
+export const setShowPersonPhotos = mutation({
+  args: { token: v.string(), enabled: v.boolean() },
+  handler: async (ctx, { token, enabled }) => {
+    await requireAdmin(ctx, token);
+    const settings = await getOrCreateSettings(ctx);
+    if ((settings.showPersonPhotos ?? DEFAULT.showPersonPhotos) === enabled) {
+      return { ok: true as const };
+    }
+    await ctx.db.patch(settings._id, {
+      showPersonPhotos: enabled,
+      updatedAt: Date.now(),
+    });
+    await recordActivity(
+      ctx,
+      "appearance.photos_toggle",
+      `Candidate/office-bearer photos turned ${enabled ? "ON" : "OFF"} · Admin`,
+    );
+    return { ok: true as const };
+  },
+});
+
+/**
+ * Admin: person-photo layout. One of grid / compact / list.
+ * Stored as a string so future options can be added without a schema deploy.
+ */
+export const setPersonImageLayout = mutation({
+  args: { token: v.string(), layout: v.string() },
+  handler: async (ctx, { token, layout }) => {
+    await requireAdmin(ctx, token);
+    if (layout !== "grid" && layout !== "compact" && layout !== "list") {
+      throw new Error("Invalid person image layout.");
+    }
+    const settings = await getOrCreateSettings(ctx);
+    if ((settings.personImageLayout ?? DEFAULT.personImageLayout) === layout) {
+      return { ok: true as const };
+    }
+    await ctx.db.patch(settings._id, {
+      personImageLayout: layout,
+      updatedAt: Date.now(),
+    });
+    await recordActivity(
+      ctx,
+      "appearance.layout_change",
+      `Person image layout changed to ${LABEL_LAYOUT[layout as PersonImageLayout]} · Admin`,
+    );
+    return { ok: true as const };
+  },
+});
+
+/**
+ * Admin: person-photo size. One of small / medium / large.
+ */
+export const setPersonImageSize = mutation({
+  args: { token: v.string(), size: v.string() },
+  handler: async (ctx, { token, size }) => {
+    await requireAdmin(ctx, token);
+    if (size !== "small" && size !== "medium" && size !== "large") {
+      throw new Error("Invalid person image size.");
+    }
+    const settings = await getOrCreateSettings(ctx);
+    if ((settings.personImageSize ?? DEFAULT.personImageSize) === size) {
+      return { ok: true as const };
+    }
+    await ctx.db.patch(settings._id, {
+      personImageSize: size,
+      updatedAt: Date.now(),
+    });
+    await recordActivity(
+      ctx,
+      "appearance.size_change",
+      `Person image size changed to ${LABEL_SIZE[size as PersonImageSize]} · Admin`,
     );
     return { ok: true as const };
   },
