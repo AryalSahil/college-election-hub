@@ -302,7 +302,7 @@ Convex functions are pushed separately (`npx convex deploy`).
 | Setting | Value |
 | --- | --- |
 | Framework Preset | Vite (declared in `vercel.json`) |
-| Install Command | `bun install --frozen-lockfile` |
+| Install Command | `bunx bun@1.4.2 install --frozen-lockfile` |
 | Build Command | `bun run build` |
 | Output Directory | `dist` |
 | Node.js Version | 22.x (pinned via `engines.node` in `package.json`) |
@@ -338,9 +338,26 @@ with `npx convex codegen` whenever an API surface changes.
 
 ### Lockfile
 
-`bun.lock` is the single source of truth. The pinned Install Command above makes
-Vercel use it even though a stale `package-lock.json` is still present in the
-repository; you can delete that file to remove the ambiguity entirely.
+`bun.lock` is the single source of truth, and it is pinned to a Bun version that
+can read it.
+
+`bun.lock` says `"lockfileVersion": 2`, a format only written by **Bun ≥ 1.4.0**.
+Vercel's build image ships an older Bun (1.2.x/1.3.x), which fails with:
+
+```
+error: Unknown lockfile version
+UnknownLockfileVersion: failed to parse lockfile: 'bun.lock'
+```
+
+It then ignores the lockfile and `--frozen-lockfile` aborts. The Install Command
+therefore pins the exact Bun that wrote the lockfile (`bunx bun@1.4.2`) instead
+of relying on the image's default Bun. If `bun.lock` is ever regenerated with a
+different Bun, update that version to match.
+
+A stale, **invalid** `package-lock.json` used to sit next to it — it failed
+`npm ci` outright (`lock file's convex@1.42.1 does not satisfy convex@1.46.0`),
+so npm was never a viable install path here. It has been removed so no tooling
+can pick npm by accident.
 
 ### Leftover scaffold files
 
