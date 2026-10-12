@@ -291,3 +291,59 @@ When using convex, make sure:
 - This includes importing generated files like `@/convex/_generated/server`, `@/convex/_generated/api`
 - Remember to import functions like useQuery, useMutation, useAction, etc. from `convex/react`
 - NEVER have return type validators.
+
+## Deploying to Vercel
+
+This is a Vite SPA with a Convex backend, so the frontend is built here and the
+Convex functions are pushed separately (`npx convex deploy`).
+
+### Project settings (Project → Settings → Build and Deployment)
+
+| Setting | Value |
+| --- | --- |
+| Framework Preset | Vite (declared in `vercel.json`) |
+| Install Command | `bun install --frozen-lockfile` |
+| Build Command | `bun run build` |
+| Output Directory | `dist` |
+| Node.js Version | 22.x (pinned via `engines.node` in `package.json`) |
+
+`vercel.json` also rewrites every unmatched path to `/index.html` so client-side
+deep links (`/winners`, `/display`, `/admin/login`, `/admin/*`) survive a refresh
+or direct navigation instead of returning a 404.
+
+### Environment variables
+
+Only one variable is required by the frontend build. It is inlined at build time
+by Vite, so it must be present in the Vercel **Production** (and **Preview**)
+environments:
+
+| Name | Scope | Value |
+| --- | --- |
+| `VITE_CONVEX_URL` | Frontend, build time | Your production Convex deployment URL, e.g. `https://<deployment>.convex.cloud` |
+
+Variables prefixed with `VITE_` are embedded into the client bundle and are
+public. Never place secrets, admin passwords, or private keys in a `VITE_`
+variable. Convex backend variables (auth keys, email provider keys) are set on
+the Convex deployment itself, not in Vercel.
+
+See `.env.example` for the local-development template. Never commit a real
+`.env` file — it is git-ignored.
+
+### Generated Convex types
+
+The `src/convex/_generated` directory is committed on purpose. The build runs
+`tsc -b` before Vite, so those types must exist in a clean checkout; committing
+them lets Vercel build without Convex deployment credentials. Regenerate them
+with `npx convex codegen` whenever an API surface changes.
+
+### Lockfile
+
+`bun.lock` is the single source of truth. The pinned Install Command above makes
+Vercel use it even though a stale `package-lock.json` is still present in the
+repository; you can delete that file to remove the ambiguity entirely.
+
+### Leftover scaffold files
+
+`sst-env.d.ts`, `isolate/`, and `main.ts` are leftovers from the platform
+scaffold. None of them are part of the Vite build (`main.tsx` is the entry), so
+they are harmless, but they can be removed.

@@ -47,7 +47,6 @@ export function ImageUploader({
   onDraft,
   onRemoved,
   label,
-  hint,
   aspect = "square",
   className,
 }: ImageUploaderProps) {

@@ -129,7 +129,6 @@ export const appearance = query({
   args: {},
   handler: async (ctx) => {
     const settings = resolveSettings(await getSettings(ctx));
-    settings.faviconStorageId; // preserve storage access in this query path
     return resolveAppearance(settings);
   },
 });

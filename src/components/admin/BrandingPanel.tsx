@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { Loader2, RefreshCw, Save, Trash2 } from "lucide-react";
@@ -184,24 +184,19 @@ export function BrandingPanel() {
   const updateElection = useMutation(api.election.update);
   const updateFavicon = useMutation(api.settings.updateFavicon);
 
-  const [collegeName, setCollegeName] = useState("");
-  const [electionName, setElectionName] = useState("");
-  const [year, setYear] = useState("");
-  const [initialized, setInitialized] = useState(false);
+  // Drafts stay `null` until the admin types, so each field falls back to the
+  // value saved in Convex instead of being seeded by an effect.
+  const [collegeNameDraft, setCollegeNameDraft] = useState<string | null>(null);
+  const [electionNameDraft, setElectionNameDraft] = useState<string | null>(
+    null,
+  );
+  const [yearDraft, setYearDraft] = useState<string | null>(null);
   const [logoDraft, setLogoDraft] = useState<ImageDraft | null>(null);
   const [logoRemoved, setLogoRemoved] = useState(false);
   const [faviconDraft, setFaviconDraft] = useState<ImageDraft | null>(null);
   const [faviconRemoved, setFaviconRemoved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!data || initialized) return;
-    setCollegeName(data.branding.collegeName ?? "");
-    setElectionName(data.election?.name ?? "");
-    setYear(data.election?.year ?? String(new Date().getFullYear()));
-    setInitialized(true);
-  }, [data, initialized]);
 
   if (data === undefined) {
     return (
@@ -220,6 +215,11 @@ export function BrandingPanel() {
   if (data === null) return null;
 
   const currentLogoUrl = data.branding.logoUrl ?? null;
+
+  const collegeName = collegeNameDraft ?? data.branding.collegeName ?? "";
+  const electionName = electionNameDraft ?? data.election?.name ?? "";
+  const year =
+    yearDraft ?? data.election?.year ?? String(new Date().getFullYear());
 
   async function handleSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -387,7 +387,7 @@ export function BrandingPanel() {
               <Input
                 id="branding-college"
                 value={collegeName}
-                onChange={(event) => setCollegeName(event.target.value)}
+                onChange={(event) => setCollegeNameDraft(event.target.value)}
                 placeholder="e.g. Pragjyotish College"
                 maxLength={80}
                 required
@@ -398,7 +398,7 @@ export function BrandingPanel() {
               <Input
                 id="branding-title"
                 value={electionName}
-                onChange={(event) => setElectionName(event.target.value)}
+                onChange={(event) => setElectionNameDraft(event.target.value)}
                 placeholder="e.g. College Election"
                 maxLength={120}
               />
@@ -408,7 +408,7 @@ export function BrandingPanel() {
               <Input
                 id="branding-year"
                 value={year}
-                onChange={(event) => setYear(event.target.value)}
+                onChange={(event) => setYearDraft(event.target.value)}
                 placeholder="e.g. 2026"
                 maxLength={20}
               />

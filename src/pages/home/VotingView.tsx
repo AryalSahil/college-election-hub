@@ -220,7 +220,7 @@ export function VotingView() {
                     ]
                       .filter(Boolean)
                       .join(" · ");
-                    const image = personImageProps(appearance, option);
+                    const image = personImageProps(appearance);
                     // Layout: "compact" rows keep a small photo beside the
                     // name; "grid" keeps the current card grid; "list" is a
                     // square-photo single column.

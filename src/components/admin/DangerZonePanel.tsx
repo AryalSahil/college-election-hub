@@ -3,7 +3,6 @@ import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { Loader2, RotateCcw, TriangleAlert, Zap } from "lucide-react";
 import { api } from "@/convex/_generated/api";
-import { Panel, PanelBody, PanelHeader } from "@/components/admin/Panel";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

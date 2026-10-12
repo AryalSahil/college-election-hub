@@ -37,7 +37,6 @@ export type PersonImage = {
  */
 export function personImageProps(
   appearance: AppearanceSettings | undefined,
-  person: PersonImage,
 ): {
   size: number;
   sizeClass: string;

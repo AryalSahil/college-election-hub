@@ -1,4 +1,9 @@
-.env.local
 node_modules
 dist
-src/convex/_generated
+.vercel
+*.log
+
+# Local secret files — never commit these. `.env.example` is the safe template.
+.env
+.env.*
+!.env.example

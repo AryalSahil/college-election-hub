@@ -93,12 +93,19 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return
-    onSelect(api)
+
+    // Notify the consumer from a callback rather than synchronously in the
+    // effect body, which would trigger a cascading render. Both subscriptions
+    // are torn down on cleanup.
+    const notify = () => onSelect(api)
     api.on("reInit", onSelect)
     api.on("select", onSelect)
+    const frame = requestAnimationFrame(notify)
 
     return () => {
-      api?.off("select", onSelect)
+      cancelAnimationFrame(frame)
+      api.off("reInit", onSelect)
+      api.off("select", onSelect)
     }
   }, [api, onSelect])
 

@@ -100,7 +100,31 @@ class RootErrorBoundary extends React.Component<
   }
 }
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+const convexUrl = import.meta.env.VITE_CONVEX_URL as string | undefined;
+
+/**
+ * `VITE_CONVEX_URL` is inlined by Vite at build time. If it is missing (for
+ * example it was not configured in the hosting provider's environment
+ * variables), `new ConvexReactClient(...)` throws at module load and the app
+ * renders a blank page. Show a readable configuration error instead.
+ */
+if (!convexUrl) {
+  const root = document.getElementById("root");
+  if (root) {
+    root.innerHTML =
+      '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center">' +
+      '<div><p style="font-weight:600;margin:0 0 8px">Configuration error</p>' +
+      '<p style="margin:0;font-size:14px;opacity:.75">This deployment is missing the ' +
+      "<code>VITE_CONVEX_URL</code> environment variable. Set it to your Convex " +
+      "deployment URL (e.g. <code>https://your-deployment.convex.cloud</code>) " +
+      "and redeploy.</p></div></div>";
+  }
+  throw new Error(
+    "Missing VITE_CONVEX_URL. Set it in your hosting provider's environment variables and redeploy.",
+  );
+}
+
+const convex = new ConvexReactClient(convexUrl);
 
 
 
