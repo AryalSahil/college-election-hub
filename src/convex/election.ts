@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation } from "./_generated/server";
 import { electionStatusValidator } from "./schema";
 import { ensureElection, recordActivity, requireAdmin } from "./helpers";
@@ -17,10 +17,10 @@ export const update = mutation({
 
     const name = args.name.trim();
     const year = args.year.trim();
-    if (!name) throw new Error("Election name is required.");
-    if (!year) throw new Error("Election year is required.");
-    if (name.length > 120) throw new Error("Election name is too long.");
-    if (year.length > 20) throw new Error("Election year is too long.");
+    if (!name) throw new ConvexError("Election name is required.");
+    if (!year) throw new ConvexError("Election year is required.");
+    if (name.length > 120) throw new ConvexError("Election name is too long.");
+    if (year.length > 20) throw new ConvexError("Election year is too long.");
 
     const election = await ensureElection(ctx);
     await ctx.db.patch(election._id, {

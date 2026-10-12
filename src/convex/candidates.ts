@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import {
   isNotaName,
@@ -29,10 +29,10 @@ function clean(value: string | undefined): string | undefined {
  */
 function validateCandidate(input: CandidateInput): void {
   const name = input.name.trim();
-  if (!name) throw new Error("Candidate name is required.");
-  if (name.length > 120) throw new Error("Candidate name is too long.");
+  if (!name) throw new ConvexError("Candidate name is required.");
+  if (name.length > 120) throw new ConvexError("Candidate name is too long.");
   if (isNotaName(name)) {
-    throw new Error(
+    throw new ConvexError(
       "NOTA is added automatically to every post and cannot be created as a candidate.",
     );
   }
@@ -83,7 +83,7 @@ export const create = mutation({
     validateCandidate(args);
 
     const post = await ctx.db.get(args.postId);
-    if (!post) throw new Error("This post no longer exists.");
+    if (!post) throw new ConvexError("This post no longer exists.");
 
     // The file was validated and stored by the images.upload action.
     const photoStorageId = args.photoStorageId;
@@ -132,9 +132,9 @@ export const update = mutation({
     validateCandidate(args);
 
     const candidate = await ctx.db.get(args.candidateId);
-    if (!candidate) throw new Error("This candidate no longer exists.");
+    if (!candidate) throw new ConvexError("This candidate no longer exists.");
     const post = await ctx.db.get(args.postId);
-    if (!post) throw new Error("The selected post no longer exists.");
+    if (!post) throw new ConvexError("The selected post no longer exists.");
 
     const notes: string[] = [];
     if (candidate.postId !== args.postId) {
@@ -195,7 +195,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.token);
     const candidate = await ctx.db.get(args.candidateId);
-    if (!candidate) throw new Error("This candidate no longer exists.");
+    if (!candidate) throw new ConvexError("This candidate no longer exists.");
 
     const votes = await ctx.db
       .query("votes")
@@ -203,7 +203,7 @@ export const remove = mutation({
       .collect();
     const hasVotes = votes.some((vote) => vote.candidateId === candidate._id);
     if (hasVotes) {
-      throw new Error(
+      throw new ConvexError(
         "This candidate has already received votes, so they cannot be deleted. Deactivate them instead.",
       );
     }

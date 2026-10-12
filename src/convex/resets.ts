@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./helpers";
@@ -61,7 +61,7 @@ export const resetVotes = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.token);
     if (args.confirmation.trim().toUpperCase() !== "RESET VOTES") {
-      throw new Error('Type "RESET VOTES" to confirm.');
+      throw new ConvexError('Type "RESET VOTES" to confirm.');
     }
     const election = await ensureElection(ctx);
     const deleted = await deleteAllVotes(ctx, election._id);
@@ -100,7 +100,7 @@ export const startFresh = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.token);
     if (args.confirmation.trim().toUpperCase() !== "START FRESH") {
-      throw new Error('Type "START FRESH" to confirm.');
+      throw new ConvexError('Type "START FRESH" to confirm.');
     }
 
     const election = await ensureElection(ctx);

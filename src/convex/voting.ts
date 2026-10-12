@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { NOTA } from "./schema";
@@ -227,27 +227,27 @@ export const castVote = mutation({
     // --- Gate 1: is voting actually open to students? ---
     const settings = resolveSettings(await getSettings(ctx));
     if (settings.maintenanceMode) {
-      throw new Error(
+      throw new ConvexError(
         "The election portal is temporarily unavailable. Please try again later.",
       );
     }
     if (settings.activePublicPage !== "voting") {
-      throw new Error("Voting is not currently available.");
+      throw new ConvexError("Voting is not currently available.");
     }
     if (settings.votingStatus !== "open") {
-      throw new Error("Voting is not open right now.");
+      throw new ConvexError("Voting is not open right now.");
     }
 
     // --- Gate 2: which posts are active? ---
     const election = await getActiveElection(ctx);
-    if (!election) throw new Error("No election is configured.");
+    if (!election) throw new ConvexError("No election is configured.");
     const posts = await ctx.db
       .query("posts")
       .withIndex("by_election", (q) => q.eq("electionId", election._id))
       .collect();
     const activePosts = posts.filter((post) => post.active);
     if (activePosts.length === 0) {
-      throw new Error("There are no active posts to vote for.");
+      throw new ConvexError("There are no active posts to vote for.");
     }
 
     // --- Gate 3: optional one-time voter code ---
@@ -255,17 +255,17 @@ export const castVote = mutation({
     const normalizedCode = (voterCode ?? "").trim().toUpperCase();
     if (settings.voterCodesEnabled) {
       if (!normalizedCode) {
-        throw new Error("Enter your voter code to continue.");
+        throw new ConvexError("Enter your voter code to continue.");
       }
       voterCodeRecord = await ctx.db
         .query("voterCodes")
         .withIndex("by_code", (q) => q.eq("code", normalizedCode))
         .unique();
       if (!voterCodeRecord || voterCodeRecord.electionId !== election._id) {
-        throw new Error("This voter code is not valid.");
+        throw new ConvexError("This voter code is not valid.");
       }
       if (voterCodeRecord.used) {
-        throw new Error("This voter code has already been used.");
+        throw new ConvexError("This voter code has already been used.");
       }
     }
 
@@ -274,15 +274,15 @@ export const castVote = mutation({
     const seen = new Set<string>();
     for (const selection of selections) {
       if (!activeIds.has(selection.postId)) {
-        throw new Error("Please select an option for every post.");
+        throw new ConvexError("Please select an option for every post.");
       }
       if (seen.has(selection.postId)) {
-        throw new Error("Please select an option for every post.");
+        throw new ConvexError("Please select an option for every post.");
       }
       seen.add(selection.postId);
     }
     if (seen.size !== activePosts.length) {
-      throw new Error("Please select an option for every post.");
+      throw new ConvexError("Please select an option for every post.");
     }
 
     for (const selection of selections) {
@@ -293,12 +293,12 @@ export const castVote = mutation({
         !candidate.active ||
         candidate.postId !== selection.postId
       ) {
-        throw new Error(
+        throw new ConvexError(
           "One of your selections is no longer valid. Please review your ballot.",
         );
       }
       if (isNotaName(candidate.name)) {
-        throw new Error(
+        throw new ConvexError(
           "One of your selections is no longer valid. Please review your ballot.",
         );
       }
@@ -412,7 +412,7 @@ export const generateVoterCodes = mutation({
     await requireAdmin(ctx, args.token);
     const count = Math.floor(args.count);
     if (!Number.isFinite(count) || count < 1 || count > 2000) {
-      throw new Error("Choose between 1 and 2000 codes.");
+      throw new ConvexError("Choose between 1 and 2000 codes.");
     }
     const election = await ensureElection(ctx);
 

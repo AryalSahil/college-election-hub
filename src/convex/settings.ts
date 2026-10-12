@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import {
   publicPageValidator,
@@ -266,7 +266,7 @@ export const setPersonImageLayout = mutation({
   handler: async (ctx, { token, layout }) => {
     await requireAdmin(ctx, token);
     if (layout !== "grid" && layout !== "compact" && layout !== "list") {
-      throw new Error("Invalid person image layout.");
+      throw new ConvexError("Invalid person image layout.");
     }
     const settings = await getOrCreateSettings(ctx);
     if ((settings.personImageLayout ?? DEFAULT.personImageLayout) === layout) {
@@ -293,7 +293,7 @@ export const setPersonImageSize = mutation({
   handler: async (ctx, { token, size }) => {
     await requireAdmin(ctx, token);
     if (size !== "small" && size !== "medium" && size !== "large") {
-      throw new Error("Invalid person image size.");
+      throw new ConvexError("Invalid person image size.");
     }
     const settings = await getOrCreateSettings(ctx);
     if ((settings.personImageSize ?? DEFAULT.personImageSize) === size) {
@@ -346,8 +346,8 @@ export const updateBranding = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.token);
     const collegeName = args.collegeName.trim();
-    if (!collegeName) throw new Error("College name is required.");
-    if (collegeName.length > 80) throw new Error("College name is too long.");
+    if (!collegeName) throw new ConvexError("College name is required.");
+    if (collegeName.length > 80) throw new ConvexError("College name is too long.");
 
     const settings = await getOrCreateSettings(ctx);
     const previousId = settings.logoStorageId;

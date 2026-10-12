@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
 import { imageBlob, validateImageUpload } from "./helpers";
@@ -26,7 +26,7 @@ export const upload = action({
       token: args.token,
     });
     if (!authorized) {
-      throw new Error(
+      throw new ConvexError(
         "Your admin session is invalid or has expired. Please sign in again.",
       );
     }

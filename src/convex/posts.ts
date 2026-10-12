@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./helpers";
@@ -54,8 +54,8 @@ export const create = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.token);
     const name = args.name.trim();
-    if (!name) throw new Error("Post name is required.");
-    if (name.length > 120) throw new Error("Post name is too long.");
+    if (!name) throw new ConvexError("Post name is required.");
+    if (name.length > 120) throw new ConvexError("Post name is too long.");
 
     const election = await ensureElection(ctx);
     const posts = await sortedPosts(ctx, election._id);
@@ -88,11 +88,11 @@ export const update = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.token);
     const post = await ctx.db.get(args.postId);
-    if (!post) throw new Error("This post no longer exists.");
+    if (!post) throw new ConvexError("This post no longer exists.");
 
     const name = args.name.trim();
-    if (!name) throw new Error("Post name is required.");
-    if (name.length > 120) throw new Error("Post name is too long.");
+    if (!name) throw new ConvexError("Post name is required.");
+    if (name.length > 120) throw new ConvexError("Post name is too long.");
 
     const changes: string[] = [];
     if (post.name !== name) changes.push(`renamed to ${name}`);
@@ -118,14 +118,14 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.token);
     const post = await ctx.db.get(args.postId);
-    if (!post) throw new Error("This post no longer exists.");
+    if (!post) throw new ConvexError("This post no longer exists.");
 
     const votes = await ctx.db
       .query("votes")
       .withIndex("by_post", (q) => q.eq("postId", post._id))
       .take(1);
     if (votes.length > 0) {
-      throw new Error(
+      throw new ConvexError(
         "Votes have already been cast for this post, so it cannot be deleted. Disable it instead.",
       );
     }
@@ -157,7 +157,7 @@ export const move = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.token);
     const post = await ctx.db.get(args.postId);
-    if (!post) throw new Error("This post no longer exists.");
+    if (!post) throw new ConvexError("This post no longer exists.");
 
     const posts = await sortedPosts(ctx, post.electionId);
     const index = posts.findIndex((p) => p._id === post._id);

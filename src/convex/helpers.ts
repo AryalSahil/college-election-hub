@@ -9,6 +9,7 @@
  * - Failed logins are rate-limited with a temporary lockout.
  */
 import type { GenericMutationCtx, GenericQueryCtx } from "convex/server";
+import { ConvexError } from "convex/values";
 import type { DataModel, Doc, Id } from "./_generated/dataModel";
 import type { PublicPage } from "./schema";
 
@@ -266,7 +267,7 @@ export function validateImageUpload(
 ): { contentType: string } {
   const data = new Uint8Array(bytes);
   if (data.byteLength === 0) {
-    throw new Error("The uploaded file is empty.");
+    throw new ConvexError("The uploaded file is empty.");
   }
   const kindLabels: Record<ImageKind, string> = {
     logo: "Logo",
@@ -276,7 +277,7 @@ export function validateImageUpload(
   };
   const maxBytes = kind === "favicon" ? FAVICON_MAX_BYTES : IMAGE_MAX_BYTES;
   if (data.byteLength > maxBytes) {
-    throw new Error(
+    throw new ConvexError(
       `${kindLabels[kind]} is too large. Maximum size is ${
         maxBytes >= 1024 * 1024
           ? `${maxBytes / (1024 * 1024)} MB`
@@ -287,28 +288,28 @@ export function validateImageUpload(
 
   const type = sniffImageType(data);
   if (!type) {
-    throw new Error("Unsupported file type. Use PNG, JPG, WebP, or SVG.");
+    throw new ConvexError("Unsupported file type. Use PNG, JPG, WebP, or SVG.");
   }
   if (type === "ico" && kind !== "favicon") {
-    throw new Error("ICO files are only supported for favicons.");
+    throw new ConvexError("ICO files are only supported for favicons.");
   }
   const label = kindLabels[kind];
   if (type !== "svg") {
     const dimensions = readImageDimensions(data, type);
     if (!dimensions) {
-      throw new Error(
+      throw new ConvexError(
         "Could not read the image dimensions. Re-export the image and try again.",
       );
     }
     const { width, height } = dimensions;
     const minDimension = kind === "favicon" ? 16 : IMAGE_MIN_DIMENSION;
     if (width < minDimension || height < minDimension) {
-      throw new Error(
+      throw new ConvexError(
         `${label} must be at least ${minDimension}×${minDimension} pixels.`,
       );
     }
     if (width > IMAGE_MAX_DIMENSION || height > IMAGE_MAX_DIMENSION) {
-      throw new Error(
+      throw new ConvexError(
         `${label} must be no larger than ${IMAGE_MAX_DIMENSION}×${IMAGE_MAX_DIMENSION} pixels.`,
       );
     }
@@ -327,11 +328,11 @@ export function validateImageUpload(
     ];
     for (const pattern of dangerous) {
       if (pattern.test(text)) {
-        throw new Error("This SVG contains active content and was rejected.");
+        throw new ConvexError("This SVG contains active content and was rejected.");
       }
     }
     if (data.byteLength > 512 * 1024) {
-      throw new Error("SVG files must be smaller than 512 KB.");
+      throw new ConvexError("SVG files must be smaller than 512 KB.");
     }
     return { contentType: "image/svg+xml" };
   }
@@ -514,7 +515,7 @@ export async function requireAdmin(
 ): Promise<Doc<"admins">> {
   const admin = await verifySession(ctx, token);
   if (!admin) {
-    throw new Error("Your admin session is invalid or has expired. Please sign in again.");
+    throw new ConvexError("Your admin session is invalid or has expired. Please sign in again.");
   }
   return admin;
 }

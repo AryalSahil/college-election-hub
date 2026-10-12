@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
@@ -84,9 +84,9 @@ export const create = mutation({
     await requireAdmin(ctx, args.token);
     const title = args.title.trim();
     const content = args.content.trim();
-    if (!title) throw new Error("Notification title is required.");
-    if (!content) throw new Error("Notification description is required.");
-    if (title.length > 160) throw new Error("Title is too long.");
+    if (!title) throw new ConvexError("Notification title is required.");
+    if (!content) throw new ConvexError("Notification description is required.");
+    if (title.length > 160) throw new ConvexError("Title is too long.");
 
     const election = await ensureElection(ctx);
     await ctx.db.insert("notifications", {
@@ -119,12 +119,12 @@ export const update = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.token);
     const existing = await ctx.db.get(args.notificationId);
-    if (!existing) throw new Error("This notification no longer exists.");
+    if (!existing) throw new ConvexError("This notification no longer exists.");
 
     const title = args.title.trim();
     const content = args.content.trim();
-    if (!title) throw new Error("Notification title is required.");
-    if (!content) throw new Error("Notification description is required.");
+    if (!title) throw new ConvexError("Notification title is required.");
+    if (!content) throw new ConvexError("Notification description is required.");
 
     const notes: string[] = [];
     if (existing.published !== args.published) {
@@ -156,7 +156,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.token);
     const existing = await ctx.db.get(args.notificationId);
-    if (!existing) throw new Error("This notification no longer exists.");
+    if (!existing) throw new ConvexError("This notification no longer exists.");
 
     await ctx.db.delete(existing._id);
     await recordActivity(

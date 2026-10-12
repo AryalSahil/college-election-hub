@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import {
   getSettings,
@@ -155,7 +155,7 @@ function clean(value: string | undefined, max: number): string | undefined {
 
 function validateYear(year: string) {
   if (!/^\d{4}$/.test(year)) {
-    throw new Error("Election year must be a 4-digit year, e.g. 2026.");
+    throw new ConvexError("Election year must be a 4-digit year, e.g. 2026.");
   }
 }
 
@@ -167,10 +167,10 @@ export const add = mutation({
     const name = args.name.trim();
     const position = args.position.trim();
     const year = args.electionYear.trim();
-    if (!name) throw new Error("Full name is required.");
-    if (name.length > 80) throw new Error("Name is too long.");
-    if (!position) throw new Error("Position is required.");
-    if (position.length > 80) throw new Error("Position is too long.");
+    if (!name) throw new ConvexError("Full name is required.");
+    if (name.length > 80) throw new ConvexError("Name is too long.");
+    if (!position) throw new ConvexError("Position is required.");
+    if (position.length > 80) throw new ConvexError("Position is too long.");
     validateYear(year);
 
     const now = Date.now();
@@ -204,15 +204,15 @@ export const update = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.token);
     const existing = await ctx.db.get(args.id);
-    if (!existing) throw new Error("Office bearer not found.");
+    if (!existing) throw new ConvexError("Office bearer not found.");
 
     const name = args.name.trim();
     const position = args.position.trim();
     const year = args.electionYear.trim();
-    if (!name) throw new Error("Full name is required.");
-    if (name.length > 80) throw new Error("Name is too long.");
-    if (!position) throw new Error("Position is required.");
-    if (position.length > 80) throw new Error("Position is too long.");
+    if (!name) throw new ConvexError("Full name is required.");
+    if (name.length > 80) throw new ConvexError("Name is too long.");
+    if (!position) throw new ConvexError("Position is required.");
+    if (position.length > 80) throw new ConvexError("Position is too long.");
     validateYear(year);
 
     let photoStorageId = existing.photoStorageId;
@@ -258,7 +258,7 @@ export const setServing = mutation({
   handler: async (ctx, { token, id, current }) => {
     await requireAdmin(ctx, token);
     const existing = await ctx.db.get(id);
-    if (!existing) throw new Error("Office bearer not found.");
+    if (!existing) throw new ConvexError("Office bearer not found.");
     if (existing.current === current) return { ok: true as const };
     await ctx.db.patch(id, { current, updatedAt: Date.now() });
     await recordActivity(
@@ -278,7 +278,7 @@ export const remove = mutation({
   handler: async (ctx, { token, id }) => {
     await requireAdmin(ctx, token);
     const existing = await ctx.db.get(id);
-    if (!existing) throw new Error("Office bearer not found.");
+    if (!existing) throw new ConvexError("Office bearer not found.");
     if (existing.photoStorageId) {
       await ctx.storage.delete(existing.photoStorageId);
     }
