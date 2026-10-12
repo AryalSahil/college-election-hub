@@ -6,13 +6,10 @@ import type { QueryCtx } from "./helpers";
 import {
   NOTA_LABEL,
   computePublicPage,
-  ensureElection,
   getActiveElection,
   getSettings,
   isNotaName,
   randomHex,
-  recordActivity,
-  requireAdmin,
   resolveCandidatePhoto,
   resolveSettings,
   verifySession,
@@ -201,7 +198,6 @@ export const publicBallot = query({
     return {
       election: { name: election.name, year: election.year },
       votingStatus: settings.votingStatus,
-      voterCodesEnabled: settings.voterCodesEnabled,
       appearance: resolveAppearance(settings),
       posts: ballotPosts,
     };
@@ -221,9 +217,8 @@ export const castVote = mutation({
         choice: v.union(v.id("candidates"), v.literal(NOTA)),
       }),
     ),
-    voterCode: v.optional(v.string()),
   },
-  handler: async (ctx, { selections, voterCode }) => {
+  handler: async (ctx, { selections }) => {
     // --- Gate 1: is voting actually open to students? ---
     const settings = resolveSettings(await getSettings(ctx));
     if (settings.maintenanceMode) {
@@ -250,26 +245,7 @@ export const castVote = mutation({
       throw new ConvexError("There are no active posts to vote for.");
     }
 
-    // --- Gate 3: optional one-time voter code ---
-    let voterCodeRecord: Doc<"voterCodes"> | null = null;
-    const normalizedCode = (voterCode ?? "").trim().toUpperCase();
-    if (settings.voterCodesEnabled) {
-      if (!normalizedCode) {
-        throw new ConvexError("Enter your voter code to continue.");
-      }
-      voterCodeRecord = await ctx.db
-        .query("voterCodes")
-        .withIndex("by_code", (q) => q.eq("code", normalizedCode))
-        .unique();
-      if (!voterCodeRecord || voterCodeRecord.electionId !== election._id) {
-        throw new ConvexError("This voter code is not valid.");
-      }
-      if (voterCodeRecord.used) {
-        throw new ConvexError("This voter code has already been used.");
-      }
-    }
-
-    // --- Gate 4: exactly one valid choice for every active post ---
+    // --- Gate 3: exactly one valid choice for every active post ---
     const activeIds = new Set(activePosts.map((post) => post._id));
     const seen = new Set<string>();
     for (const selection of selections) {
@@ -306,22 +282,12 @@ export const castVote = mutation({
 
     // --- Write the whole ballot atomically ---
     const ballotId = randomHex(16);
-    if (voterCodeRecord) {
-      // Consume the one-time code in the same transaction as the ballot, so
-      // a code can never be spent twice.
-      await ctx.db.patch(voterCodeRecord._id, {
-        used: true,
-        usedAt: Date.now(),
-        ballotId,
-      });
-    }
     for (const selection of selections) {
       await ctx.db.insert("votes", {
         electionId: election._id,
         postId: selection.postId,
         candidateId: selection.choice,
         ballotId,
-        voterToken: voterCodeRecord ? normalizedCode : undefined,
       });
     }
     return { ok: true as const };
@@ -371,104 +337,6 @@ export const adminResults = query({
     return {
       published: settings.resultsVisibility,
       results: await computeResults(ctx, election),
-    };
-  },
-});
-
-/**
- * Public: early feedback for a voter code before the ballot is shown. The
- * code is only consumed when the ballot is actually submitted.
- */
-export const checkVoterCode = query({
-  args: { code: v.string() },
-  handler: async (ctx, { code }) => {
-    const settings = resolveSettings(await getSettings(ctx));
-    if (!settings.voterCodesEnabled) return { status: "disabled" as const };
-    const normalized = code.trim().toUpperCase();
-    if (!normalized) return { status: "unknown" as const };
-    const record = await ctx.db
-      .query("voterCodes")
-      .withIndex("by_code", (q) => q.eq("code", normalized))
-      .unique();
-    if (!record) return { status: "unknown" as const };
-    if (record.used) return { status: "used" as const };
-    return { status: "ok" as const };
-  },
-});
-
-function randomVoterCode(): string {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = new Uint8Array(8);
-  crypto.getRandomValues(bytes);
-  let raw = "";
-  for (const byte of bytes) raw += alphabet[byte % alphabet.length];
-  return `${raw.slice(0, 4)}-${raw.slice(4)}`;
-}
-
-/** Admin: generate one-time voter codes for this election. */
-export const generateVoterCodes = mutation({
-  args: { token: v.string(), count: v.number() },
-  handler: async (ctx, args) => {
-    await requireAdmin(ctx, args.token);
-    const count = Math.floor(args.count);
-    if (!Number.isFinite(count) || count < 1 || count > 2000) {
-      throw new ConvexError("Choose between 1 and 2000 codes.");
-    }
-    const election = await ensureElection(ctx);
-
-    const codes: string[] = [];
-    for (let i = 0; i < count; i++) {
-      let code = randomVoterCode();
-      for (let attempt = 0; attempt < 8; attempt++) {
-        const existing = await ctx.db
-          .query("voterCodes")
-          .withIndex("by_code", (q) => q.eq("code", code))
-          .unique();
-        if (!existing) break;
-        code = randomVoterCode();
-      }
-      await ctx.db.insert("voterCodes", {
-        electionId: election._id,
-        code,
-        used: false,
-      });
-      codes.push(code);
-    }
-    await recordActivity(
-      ctx,
-      "voter_codes.generate",
-      `Generated ${count} voter code(s) · Admin · Election: ${election.name}`,
-    );
-    return { ok: true as const, count, codes };
-  },
-});
-
-/** Admin: voter-code usage stats (Unused / Used). */
-export const voterCodeStats = query({
-  args: { token: v.string() },
-  handler: async (ctx, { token }) => {
-    const admin = await verifySession(ctx, token);
-    if (!admin) return null;
-    const settings = resolveSettings(await getSettings(ctx));
-    const election = await getActiveElection(ctx);
-    if (!election) {
-      return {
-        enabled: settings.voterCodesEnabled,
-        total: 0,
-        unused: 0,
-        used: 0,
-      };
-    }
-    const codes = await ctx.db
-      .query("voterCodes")
-      .withIndex("by_election", (q) => q.eq("electionId", election._id))
-      .collect();
-    const used = codes.filter((entry) => entry.used).length;
-    return {
-      enabled: settings.voterCodesEnabled,
-      total: codes.length,
-      unused: codes.length - used,
-      used,
     };
   },
 });

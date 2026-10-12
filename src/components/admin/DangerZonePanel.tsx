@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { Loader2, RotateCcw, TriangleAlert, Zap } from "lucide-react";
 import { api } from "@/convex/_generated/api";
@@ -20,8 +20,7 @@ import { useAdminToken } from "@/lib/adminSession";
 type DialogState =
   | null
   | { op: "votes"; stage: "confirm" | "phrase" }
-  | { op: "fresh"; stage: "confirm" | "phrase" }
-  | { op: "voter" };
+  | { op: "fresh"; stage: "confirm" | "phrase" };
 
 const PHRASES = {
   votes: "RESET VOTES",
@@ -35,7 +34,7 @@ const PHRASES = {
  * server (`convex/resets.ts`): the typed confirmation phrase is checked
  * server-side, and each operation writes an audit-log entry. Candidates,
  * posts, photos, branding, notifications, and the admin account are never
- * touched — only election activity (votes, voter-code usage, voting status).
+ * touched — only election activity (votes and voting status).
  *
  * Client-side protection is a two-step dialog: an "Are you sure?" prompt
  * first, then the typed phrase, so one accidental click can never destroy
@@ -43,9 +42,7 @@ const PHRASES = {
  */
 export function DangerZonePanel() {
   const token = useAdminToken() ?? "";
-  const stats = useQuery(api.voting.voterCodeStats, { token });
   const resetVotes = useMutation(api.resets.resetVotes);
-  const resetVoterStatus = useMutation(api.resets.resetVoterStatus);
   const startFresh = useMutation(api.resets.startFresh);
 
   const [dialog, setDialog] = useState<DialogState>(null);
@@ -118,38 +115,7 @@ export function DangerZonePanel() {
         </div>
 
         {/* ---------------------------------------------------------- */}
-        {/* 2. Reset Voter Status                                      */}
-        {/* ---------------------------------------------------------- */}
-        <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold">Reset Voter Status</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Return every voter code to unused.{" "}
-              {stats ? (
-                <span className="tabular-nums">
-                  Unused: <span className="font-medium">{stats.unused}</span>
-                  {" · "}
-                  Used: <span className="font-medium">{stats.used}</span>
-                  {!stats.enabled && " (voter codes are currently disabled)"}
-                </span>
-              ) : (
-                "Loading voter-code usage…"
-              )}
-            </p>
-          </div>
-          <Button
-            variant="destructive"
-            className="shrink-0 gap-2"
-            disabled={!stats || stats.total === 0}
-            onClick={() => setDialog({ op: "voter" })}
-          >
-            <RotateCcw className="size-4" />
-            Reset All Voter Codes
-          </Button>
-        </div>
-
-        {/* ---------------------------------------------------------- */}
-        {/* 3. Start Fresh Election                                    */}
+        {/* 2. Start Fresh Election                                    */}
         {/* ---------------------------------------------------------- */}
         <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
@@ -174,7 +140,7 @@ export function DangerZonePanel() {
       {/* Step 1 — “Are you sure?” (first confirmation)                    */}
       {/* ---------------------------------------------------------------- */}
       <Dialog
-        open={!!dialog && (dialog.op === "voter" || dialog.stage === "confirm")}
+        open={!!dialog && dialog.stage === "confirm"}
         onOpenChange={(open) => !open && close()}
       >
         <DialogContent className="sm:max-w-md">
@@ -183,7 +149,6 @@ export function DangerZonePanel() {
               <TriangleAlert className="size-5" />
               {dialog?.op === "votes" && "Reset all votes?"}
               {dialog?.op === "fresh" && "Start a fresh election?"}
-              {dialog?.op === "voter" && "Reset all voter codes?"}
             </DialogTitle>
             <DialogDescription>
               {dialog?.op === "votes" && (
@@ -200,49 +165,26 @@ export function DangerZonePanel() {
                   settings. Are you sure?
                 </>
               )}
-              {dialog?.op === "voter" && (
-                <>
-                  Every voter code will return to unused
-                  {stats ? ` (${stats.used} currently used)` : ""}. Candidates
-                  and votes are not affected. Are you sure?
-                </>
-              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-3">
             <Button variant="outline" onClick={close} disabled={busy}>
               Cancel
             </Button>
-            {dialog?.op === "voter" ? (
-              <Button
-                variant="destructive"
-                disabled={busy}
-                onClick={() =>
-                  void run(
-                    () => resetVoterStatus({ token }),
-                    "All voter codes reset to unused.",
-                  )
-                }
-              >
-                {busy && <Loader2 className="mr-2 size-4 animate-spin" />}
-                Reset All Voter Codes
-              </Button>
-            ) : (
-              <Button
-                variant="destructive"
-                disabled={busy}
-                onClick={() => {
-                  setPhrase("");
-                  setDialog(
-                    dialog?.op === "votes"
-                      ? { op: "votes", stage: "phrase" }
-                      : { op: "fresh", stage: "phrase" },
-                  );
-                }}
-              >
-                {dialog?.op === "votes" ? "Yes, reset votes" : "Yes, continue"}
-              </Button>
-            )}
+            <Button
+              variant="destructive"
+              disabled={busy}
+              onClick={() => {
+                setPhrase("");
+                setDialog(
+                  dialog?.op === "votes"
+                    ? { op: "votes", stage: "phrase" }
+                    : { op: "fresh", stage: "phrase" },
+                );
+              }}
+            >
+              {dialog?.op === "votes" ? "Yes, reset votes" : "Yes, continue"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

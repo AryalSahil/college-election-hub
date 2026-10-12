@@ -196,7 +196,6 @@ export default function AdminSettings() {
   const setPublicPage = useMutation(api.settings.setPublicPage);
   const setMaintenance = useMutation(api.settings.setMaintenance);
   const setResultsVisibility = useMutation(api.settings.setResultsVisibility);
-  const setVoterCodesEnabled = useMutation(api.settings.setVoterCodesEnabled);
   const setShowWinnersPage = useMutation(api.settings.setShowWinnersPage);
   const setResetVotingStatus = useMutation(api.settings.setResetVotingStatus);
   const setShowPersonPhotos = useMutation(api.settings.setShowPersonPhotos);
@@ -312,27 +311,9 @@ export default function AdminSettings() {
         <Panel>
           <PanelHeader
             title="Election Settings"
-            description="Voter-code system and the voting status applied when you start a fresh election."
+            description="Voting status applied when you start a fresh election."
           />
           <PanelBody className="space-y-5">
-            <div className="flex items-center justify-between gap-4 rounded-md border border-border px-4 py-3.5">
-              <div className="min-w-0">
-                <p className="text-sm font-medium">Voter codes</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Require a one-time code before a student can open the
-                  ballot. Codes are managed on the Voting screen.
-                </p>
-              </div>
-              <Switch
-                checked={settings?.voterCodesEnabled ?? false}
-                onCheckedChange={(checked) =>
-                  void guard(() =>
-                    setVoterCodesEnabled({ token, enabled: checked }),
-                  )
-                }
-              />
-            </div>
-
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Voting status after Start Fresh Election</Label>

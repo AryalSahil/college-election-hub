@@ -81,8 +81,6 @@ const schema = defineSchema(
       // College branding (admin-configurable).
       collegeName: v.optional(v.string()),
       logoStorageId: v.optional(v.id("_storage")),
-      // Optional one-time voter-code system (off by default).
-      voterCodesEnabled: v.optional(v.boolean()),
       // Voting status applied by "Start Fresh Election".
       resetVotingStatus: v.optional(votingStatusValidator),
       // Whether the public /winners page is exposed (nav + direct access).
@@ -134,13 +132,11 @@ const schema = defineSchema(
 
     // One row per selection on a submitted ballot. All rows for a ballot are
     // written in a single mutation, so a partial ballot can never exist.
-    // voterToken is reserved for the future one-time voter-code system.
     votes: defineTable({
       electionId: v.id("elections"),
       postId: v.id("posts"),
       candidateId: v.union(v.id("candidates"), v.literal(NOTA)),
       ballotId: v.string(),
-      voterToken: v.optional(v.string()),
     })
       .index("by_election", ["electionId"])
       .index("by_post", ["postId"]),
@@ -181,17 +177,6 @@ const schema = defineSchema(
       detail: v.string(),
       createdAt: v.number(),
     }),
-
-    // Optional one-time voter codes (enabled from Admin → Voting).
-    voterCodes: defineTable({
-      electionId: v.id("elections"),
-      code: v.string(),
-      used: v.boolean(),
-      usedAt: v.optional(v.number()),
-      ballotId: v.optional(v.string()),
-    })
-      .index("by_code", ["code"])
-      .index("by_election", ["electionId"]),
 
     // ------------------------------------------------------------------
     // Office bearers / election history

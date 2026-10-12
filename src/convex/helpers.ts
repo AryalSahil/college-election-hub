@@ -367,7 +367,6 @@ export type ResolvedSettings = {
   votingStatus: "not_started" | "open" | "paused" | "closed";
   collegeName: string;
   logoStorageId?: Id<"_storage">;
-  voterCodesEnabled: boolean;
   resetVotingStatus: "not_started" | "open" | "paused" | "closed";
   showWinnersPage: boolean;
   faviconStorageId?: Id<"_storage">;
@@ -382,7 +381,6 @@ export const DEFAULT_SETTINGS: ResolvedSettings = {
   resultsVisibility: false,
   votingStatus: "not_started",
   collegeName: "Pragjyotish College",
-  voterCodesEnabled: false,
   resetVotingStatus: "not_started",
   showWinnersPage: true,
 };
@@ -405,7 +403,6 @@ export function resolveSettings(doc: SettingsDoc | null): ResolvedSettings {
     votingStatus: doc.votingStatus,
     collegeName: doc.collegeName || DEFAULT_SETTINGS.collegeName,
     logoStorageId: doc.logoStorageId,
-    voterCodesEnabled: doc.voterCodesEnabled ?? false,
     resetVotingStatus: doc.resetVotingStatus ?? "not_started",
     showWinnersPage: doc.showWinnersPage ?? true,
     faviconStorageId: doc.faviconStorageId,

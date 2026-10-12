@@ -9,7 +9,6 @@ import { FadeIn } from "@/components/FadeIn";
 import { CenteredLoader } from "@/components/Loader";
 import { initialsOf, personImageProps } from "@/components/PersonPhoto";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -57,7 +56,6 @@ export function VotingView() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [voterCode, setVoterCode] = useState("");
 
   const isOpen = ballot?.votingStatus === "open";
   const totalPosts = ballot?.posts.length ?? 0;
@@ -79,24 +77,6 @@ export function VotingView() {
       })),
     [ballot, selections],
   );
-
-  // Optional one-time voter code. The server is the source of truth; this
-  // query only gives the student immediate feedback before they submit.
-  const trimmedCode = voterCode.trim().toUpperCase();
-  const needsVoterCode = ballot?.voterCodesEnabled === true;
-  const codeCheck = useQuery(
-    api.voting.checkVoterCode,
-    needsVoterCode && trimmedCode ? { code: trimmedCode } : "skip",
-  );
-  const codeFeedback = !needsVoterCode || !trimmedCode || !codeCheck
-    ? null
-    : codeCheck.status === "ok"
-      ? { ok: true, text: "Voter code accepted." }
-      : codeCheck.status === "used"
-        ? { ok: false, text: "This code has already been used." }
-        : codeCheck.status === "unknown"
-          ? { ok: false, text: "This code was not found." }
-          : null;
 
   if (submitted) return <SuccessScreen />;
 
@@ -124,22 +104,6 @@ export function VotingView() {
 
   function handleSubmit() {
     if (totalPosts === 0 || submitting) return;
-    if (needsVoterCode) {
-      if (!trimmedCode) {
-        setError("Enter your voter code to continue.");
-        return;
-      }
-      // Only block on a definitive verdict; while the check is loading the
-      // mutation itself still validates the code server-side.
-      if (codeCheck && codeCheck.status !== "ok") {
-        setError(
-          codeCheck.status === "used"
-            ? "This voter code has already been used."
-            : "This voter code is not valid.",
-        );
-        return;
-      }
-    }
     const missing = summary.filter((row) => !row.choiceId);
     if (missing.length > 0) {
       setError(
@@ -164,14 +128,12 @@ export function VotingView() {
           postId: post.id,
           choice: selections[post.id],
         })),
-        ...(needsVoterCode && trimmedCode ? { voterCode: trimmedCode } : {}),
       });
       setConfirmOpen(false);
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      // Keep every selection on screen so the student can retry after fixing
-      // the problem (e.g. a wrong voter code).
+      // Keep every selection on screen so the student can retry.
       setConfirmOpen(false);
       const message = errorMessage(err);
       setError(message);
@@ -200,46 +162,6 @@ export function VotingView() {
           <li>You can select only one option per post.</li>
           <li>Your vote cannot be changed after submission.</li>
         </ul>
-
-        {needsVoterCode && (
-          <div className="mt-6 rounded-lg border border-border bg-card p-4 sm:p-5">
-            <label
-              htmlFor="voter-code"
-              className="text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground"
-            >
-              Voter Code
-            </label>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Enter the one-time code issued to you by the election desk. A code
-              can be used for a single ballot.
-            </p>
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Input
-                id="voter-code"
-                value={voterCode}
-                onChange={(event) => {
-                  setVoterCode(event.target.value.toUpperCase());
-                  setError(null);
-                }}
-                placeholder="XXXX-XXXX"
-                autoComplete="off"
-                spellCheck={false}
-                disabled={!isOpen}
-                className="h-11 max-w-xs font-mono tracking-[0.2em]"
-              />
-              {codeFeedback && (
-                <span
-                  className={[
-                    "text-sm",
-                    codeFeedback.ok ? "text-primary" : "text-destructive",
-                  ].join(" ")}
-                >
-                  {codeFeedback.text}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
 
         {!isOpen && (
           <div className="mt-6 flex items-start gap-2.5 rounded-md border border-border bg-muted/70 px-4 py-3 text-sm text-muted-foreground">

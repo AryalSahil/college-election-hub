@@ -445,28 +445,6 @@ export const setShowWinnersPage = mutation({
   },
 });
 
-/** Admin: enable/disable the optional one-time voter-code system. */
-export const setVoterCodesEnabled = mutation({
-  args: { token: v.string(), enabled: v.boolean() },
-  handler: async (ctx, args) => {
-    await requireAdmin(ctx, args.token);
-    const settings = await getOrCreateSettings(ctx);
-    if ((settings.voterCodesEnabled ?? false) === args.enabled) {
-      return { ok: true as const };
-    }
-    await ctx.db.patch(settings._id, {
-      voterCodesEnabled: args.enabled,
-      updatedAt: Date.now(),
-    });
-    await recordActivity(
-      ctx,
-      "voter_codes.toggle",
-      `Voter codes ${args.enabled ? "enabled" : "disabled"} · Admin`,
-    );
-    return { ok: true as const };
-  },
-});
-
 /** Admin: voting status applied by Start Fresh Election. */
 export const setResetVotingStatus = mutation({
   args: { token: v.string(), status: votingStatusValidator },
